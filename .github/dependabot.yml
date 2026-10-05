@@ -1,7 +1,8 @@
 # Keeps the CI and the test tooling up to date.
 #
-# Not covered: the integration's own requirements (bleak, bleak-retry-connector
-# in manifest.json), which Dependabot cannot read.
+# The integration declares no requirements of its own (bleak and
+# bleak-retry-connector come with Home Assistant's Bluetooth integration). The
+# bleak pins in requirements-test.txt only exist for the test environment.
 version: 2
 
 updates:
