@@ -7,8 +7,10 @@ from .const import (
     DURATION_TICKS_WRAP,
     DURATION_WRAP_WINDOW_TICKS,
     MAX_SOAPING_DURATION,
+    MAX_THRESHOLD_VALUE,
     MAX_WATER_TEMP,
     MIN_SOAPING_DURATION,
+    MIN_THRESHOLD_VALUE,
     MIN_WATER_TEMP,
 )
 
@@ -16,6 +18,11 @@ from .const import (
 def thresholds_strictly_increasing(values: list[int]) -> bool:
     """Return True if each value is strictly greater than the previous one."""
     return all(values[i] < values[i + 1] for i in range(len(values) - 1))
+
+
+def thresholds_fit_in_byte(values: list[int]) -> bool:
+    """Return True if every threshold fits the single byte the device uses."""
+    return all(MIN_THRESHOLD_VALUE <= value <= MAX_THRESHOLD_VALUE for value in values)
 
 
 def pairwise_increasing_errors(

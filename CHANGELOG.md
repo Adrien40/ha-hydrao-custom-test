@@ -20,10 +20,12 @@ This release is about accuracy and reliability: shower durations and the cold / 
 - **Maximum Soaping Time out of range** (outside 10–600 s) is brought back into range with a warning in the log, instead of being sent to the device as is.
 - Durations saved before the update (in minutes) are converted when restored, so a restart right after updating no longer shows values 60 times too small.
 - The wasted volume, comfort shower volume and raw shower volume sensors now use the `total_increasing` state class instead of `measurement`, which Home Assistant rejects for the `water` device class (a warning was logged at every startup). See the upgrade notes.
+- **The Temperature sensor no longer reports 0 °C when the value is unknown** (while a press of the *Shower Ended* button is waiting for the device to confirm). It now shows *unknown*, so the history and its averages are no longer skewed by fake 0 °C readings.
 
 ### 🛡️ Hardening
 - **A water temperature outside 0–100 °C is no longer used.** Some Hydrao revisions may encode the temperature differently, which could show hundreds of degrees and count all the water as comfortable. The *Temperature* sensor now shows *unknown*, the comfort / cold figures and the Comfort Mode Sync ignore that reading, volume, duration and flow keep working, and a single warning in the log gives the firmware, the hardware and the raw frame to report.
 - A drop of the device's duration counter that is not a wrap-around is treated as a device reset and counts for nothing, instead of producing a huge wrong duration.
+- Thresholds outside 0–255 are refused with a warning instead of being sent to the device; an empty hardware-revision value no longer raises an error; incomplete stored thresholds or colours no longer prevent the integration from loading; a cached, outdated Bluetooth advertisement is no longer mistaken for a fresh one at startup.
 
 ### 🧰 Maintenance
 - Every entity now shares a common base class (`HydraoEntity`): translated names, unique ID built from the Bluetooth address, device. **Entity IDs and unique IDs are unchanged.**
@@ -35,6 +37,7 @@ This release is about accuracy and reliability: shower durations and the cold / 
 - Test suite grown from 15 to over 400 tests, with 100 % coverage (lines and branches): simulated Bluetooth device, coordinator, config / options flows, entities, config entry lifecycle, translations.
 - CI: pytest + coverage workflow (95 % minimum), *Typing* workflow, and a release workflow that publishes the notes from this changelog (`scripts/release_notes.py`). `.coveragerc` measures the integration only, with branches.
 - The manifest declares the `platinum` quality scale (self-assessed in `quality_scale.yaml`, hassfest does not validate it for custom integrations), with tests keeping it consistent with the code.
+- The **Bluetooth Signal** (RSSI) sensor now updates its state at most once per second, and only when the value changes.
 
 ### 📚 Documentation
 - `README.md` / `README.fr.md`: minimum Home Assistant version, the new sensors, and new sections *How Data Is Updated*, *Use Cases*, *Automation Examples*, *Known Limitations* and *Removal*.

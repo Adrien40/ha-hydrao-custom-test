@@ -1,6 +1,7 @@
 # Copyright (c) 2026 Adrien40
 # SPDX-License-Identifier: GPL-3.0-only
 
+import time
 from typing import Any, ClassVar, cast
 
 from homeassistant.components.bluetooth import (
@@ -19,6 +20,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import (
+    SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
     EntityCategory,
     UnitOfTemperature,
     UnitOfTime,
@@ -47,6 +49,10 @@ from .entity import HydraoEntity
 
 # Read-only entities, no I/O on update.
 PARALLEL_UPDATES = 0
+
+# The RSSI sensor writes its state at most this often (seconds). The signal
+# strength is a support figure: a once-per-second refresh is plenty.
+RSSI_MIN_UPDATE_INTERVAL = 1.0
 
 SENSOR_DESCRIPTIONS = [
     SensorEntityDescription(
@@ -394,7 +400,7 @@ class HydraoBluetoothStatusSensor(HydraoEntity, SensorEntity):
 # despite maintaining its own passive BLE listener for real-time RSSI updates.
 class HydraoRealTimeRSSISensor(HydraoEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.SIGNAL_STRENGTH
-    _attr_native_unit_of_measurement = "dBm"
+    _attr_native_unit_of_measurement = SIGNAL_STRENGTH_DECIBELS_MILLIWATT
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     # Signal strength is a support tool, not something to show by default.
@@ -405,6 +411,8 @@ class HydraoRealTimeRSSISensor(HydraoEntity, SensorEntity):
     def __init__(self, coordinator: HydraoDataUpdateCoordinator) -> None:
         super().__init__(coordinator, "rssi")
         self._attr_native_value = None
+        # time.monotonic() of the last state written from an advertisement.
+        self._last_state_write: float | None = None
 
     @property
     def available(self) -> bool:
@@ -436,7 +444,7 @@ class HydraoRealTimeRSSISensor(HydraoEntity, SensorEntity):
         last_info = async_last_service_info(
             self.hass, self.coordinator.address, connectable=False
         )
-        if last_info and hasattr(last_info, "rssi"):
+        if last_info:
             self._attr_native_value = last_info.rssi
 
         self.async_write_ha_state()
@@ -445,6 +453,15 @@ class HydraoRealTimeRSSISensor(HydraoEntity, SensorEntity):
         def _async_on_bluetooth_change(
             info: BluetoothServiceInfoBleak, change: BluetoothChange
         ) -> None:
+            if info.rssi == self._attr_native_value:
+                return
+            now = time.monotonic()
+            if (
+                self._last_state_write is not None
+                and now - self._last_state_write < RSSI_MIN_UPDATE_INTERVAL
+            ):
+                return
+            self._last_state_write = now
             self._attr_native_value = info.rssi
             self.async_write_ha_state()
 

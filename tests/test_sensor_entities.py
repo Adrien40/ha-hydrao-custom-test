@@ -386,20 +386,59 @@ async def test_rssi_stays_empty_when_nothing_was_seen_yet(hass, coordinator):
     assert sensor.native_value is None
 
 
-async def test_rssi_ignores_service_info_without_a_signal_strength(hass, coordinator):
+async def _rssi_sensor_and_callback(hass, coordinator, last_rssi=None):
+    """An RSSI sensor added to hass, and the advertisement callback it
+    registered. State writes made while being added are forgotten."""
     sensor = HydraoRealTimeRSSISensor(coordinator)
     sensor.hass = hass
     sensor.async_write_ha_state = MagicMock()
+    last_info = None if last_rssi is None else MagicMock(rssi=last_rssi)
 
     with (
-        patch(
-            f"{SENSOR_MODULE}.async_last_service_info", return_value=MagicMock(spec=[])
-        ),
-        patch(f"{SENSOR_MODULE}.async_register_callback"),
+        patch(f"{SENSOR_MODULE}.async_last_service_info", return_value=last_info),
+        patch(f"{SENSOR_MODULE}.async_register_callback") as register,
     ):
         await sensor.async_added_to_hass()
 
-    assert sensor.native_value is None
+    sensor.async_write_ha_state.reset_mock()
+    return sensor, register.call_args.args[1]
+
+
+async def test_rssi_does_not_rewrite_the_state_when_the_value_is_unchanged(
+    hass, coordinator
+):
+    sensor, on_advertisement = await _rssi_sensor_and_callback(
+        hass, coordinator, last_rssi=-70
+    )
+
+    on_advertisement(MagicMock(rssi=-70), MagicMock())
+
+    sensor.async_write_ha_state.assert_not_called()
+
+
+async def test_rssi_writes_its_state_at_most_once_per_second(hass, coordinator):
+    sensor, on_advertisement = await _rssi_sensor_and_callback(
+        hass, coordinator, last_rssi=-70
+    )
+
+    with patch(f"{SENSOR_MODULE}.time.monotonic") as clock:
+        clock.return_value = 1000.0
+        on_advertisement(MagicMock(rssi=-60), MagicMock())
+        assert sensor.native_value == -60
+        assert sensor.async_write_ha_state.call_count == 1
+
+        # a change 0.4 s later is too soon: skipped, state untouched
+        clock.return_value = 1000.4
+        on_advertisement(MagicMock(rssi=-61), MagicMock())
+        assert sensor.native_value == -60
+        assert sensor.async_write_ha_state.call_count == 1
+
+        # one second after the last write, the new value goes through
+        clock.return_value = 1001.0
+        on_advertisement(MagicMock(rssi=-61), MagicMock())
+
+    assert sensor.native_value == -61
+    assert sensor.async_write_ha_state.call_count == 2
 
 
 async def test_rssi_is_disabled_by_default(hass, integration):

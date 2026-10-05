@@ -20,10 +20,12 @@ Cette version est consacrée à la précision et à la fiabilité : les durées 
 - **Durée maximale de savonnage hors limites** (hors de 10–600 s) : il est ramené dans la plage avec un avertissement dans le journal, au lieu d'être envoyé tel quel à l'appareil.
 - Les durées enregistrées avant la mise à jour (en minutes) sont converties à la restauration, donc un redémarrage juste après la mise à jour n'affiche plus des valeurs 60 fois trop petites.
 - Les capteurs de volume perdu, de volume de douche confort et de volume de douche brut utilisent maintenant la classe d'état `total_increasing` au lieu de `measurement`, que Home Assistant refuse pour la classe d'appareil `water` (un avertissement était journalisé à chaque démarrage). Voir les notes de mise à jour.
+- **Le capteur Température n'affiche plus 0 °C quand la valeur est inconnue** (pendant qu'un appui sur le bouton *Douche Terminée* attend la confirmation de l'appareil). Il affiche désormais *inconnu*, ce qui évite que l'historique et ses moyennes soient faussés par de faux relevés à 0 °C.
 
 ### 🛡️ Renforcement
 - **Une température de l'eau hors de 0–100 °C n'est plus utilisée.** Certaines révisions de l'Hydrao encodent peut-être la température autrement, ce qui pouvait afficher des centaines de degrés et compter toute l'eau comme confortable. Le capteur *Température* affiche maintenant *inconnu*, les chiffres confort / froid et la synchro du mode confort ignorent ce relevé, le volume, la durée et le débit continuent de fonctionner, et un seul avertissement dans le journal donne le firmware, le matériel et la trame brute à signaler.
 - Une baisse du compteur de durée de l'appareil qui n'est pas un dépassement du compteur est traitée comme une réinitialisation de l'appareil et ne compte pour rien, au lieu de produire une durée énorme et fausse.
+- Les seuils hors de 0–255 sont refusés avec un avertissement au lieu d'être envoyés à l'appareil ; une valeur vide pour la révision matérielle ne provoque plus d'erreur ; des seuils ou couleurs enregistrés de façon incomplète n'empêchent plus l'intégration de se charger ; une annonce Bluetooth ancienne en cache n'est plus prise pour une annonce récente au démarrage.
 
 ### 🧰 Maintenance
 - Toutes les entités partagent maintenant une classe de base commune (`HydraoEntity`) : noms traduits, ID unique construit à partir de l'adresse Bluetooth, appareil. **Les ID d'entités et les ID uniques sont inchangés.**
@@ -35,6 +37,7 @@ Cette version est consacrée à la précision et à la fiabilité : les durées 
 - Suite de tests passée de 15 à plus de 400 tests, avec 100 % de couverture (lignes et branches) : appareil Bluetooth simulé, coordinateur, config / options flow, entités, cycle de vie de l'entrée, traductions.
 - CI : workflow pytest + couverture (95 % minimum), workflow *Typing*, et un workflow de publication qui reprend les notes de ce journal (`scripts/release_notes.py`). `.coveragerc` mesure uniquement l'intégration, avec les branches.
 - Le manifest déclare l'échelle de qualité `platinum` (auto-évaluée dans `quality_scale.yaml`, hassfest ne la valide pas pour les intégrations personnalisées), avec des tests qui la gardent cohérente avec le code.
+- Le capteur **Signal Bluetooth** (RSSI) ne met à jour son état qu'une fois par seconde au plus, et seulement si la valeur change.
 
 ### 📚 Documentation
 - `README.md` / `README.fr.md` : version minimale de Home Assistant, les nouveaux capteurs, et les nouvelles sections *Mise à jour des données*, *Cas d'usage*, *Exemples d'automatisations*, *Limitations connues* et *Suppression de l'intégration*.

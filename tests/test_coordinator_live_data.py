@@ -206,8 +206,20 @@ async def test_resetting_the_display_keeps_the_wasted_figures_by_default(coordin
 
     data = coordinator.last_valid_data
     assert data["wasted_volume"] == 12.0
-    assert data["temperature"] == 0.0
+    assert data["temperature"] is None
     assert data["raw"] == {"shower_volume_raw": 0.0, "shower_duration": 0.0}
+
+
+async def test_temperature_is_unknown_not_zero_while_a_reset_is_pending(coordinator):
+    """0 C would be recorded as a real reading and skew the history."""
+    coordinator._process_live_data(*frames(temp=36.0), None)
+
+    coordinator.force_end_shower()
+    assert coordinator.last_valid_data["temperature"] is None
+
+    # a reading arriving before the device confirms the reset
+    coordinator._process_live_data(*frames(temp=36.0), None)
+    assert coordinator.last_valid_data["temperature"] is None
 
 
 async def test_resetting_the_display_can_also_clear_the_wasted_figures(coordinator):

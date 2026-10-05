@@ -54,6 +54,10 @@ DEFAULT_MIN_TEMP_THRESHOLD = 33.0
 MIN_WATER_TEMP = 0.0
 MAX_WATER_TEMP = 100.0
 
+# Each threshold is stored on a single byte of the device's config frame.
+MIN_THRESHOLD_VALUE = 0
+MAX_THRESHOLD_VALUE = 255
+
 ISSUE_TRACKER_URL = "https://github.com/Adrien40/ha-hydrao-custom/issues"
 
 MAX_NEW_SHOWER_ATTEMPTS = 2

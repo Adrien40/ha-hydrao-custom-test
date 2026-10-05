@@ -56,7 +56,9 @@ from .const import (
     DURATION_TICKS_PER_SECOND,
     ISSUE_TRACKER_URL,
     MAX_NEW_SHOWER_ATTEMPTS,
+    MAX_THRESHOLD_VALUE,
     MAX_WATER_TEMP,
+    MIN_THRESHOLD_VALUE,
     MIN_WATER_TEMP,
     HydraoConfigEntry,
 )
@@ -65,6 +67,7 @@ from .util import (
     comfort_fraction,
     duration_ticks_delta,
     is_plausible_water_temp,
+    thresholds_fit_in_byte,
     thresholds_strictly_increasing,
 )
 
@@ -163,21 +166,16 @@ class HydraoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 int(opts["soaping_duration"])
             )
 
-        if "threshold_1" in opts:
-            self.static_data["thresholds"] = [
-                int(opts["threshold_1"]),
-                int(opts["threshold_2"]),
-                int(opts["threshold_3"]),
-                int(opts["threshold_4"]),
-            ]
+        # Only trust the stored thresholds / colors when all four are there:
+        # a partial set must not stop the integration from loading. Whatever
+        # is missing is read from the device on the first connection.
+        threshold_keys = [f"threshold_{i}" for i in range(1, 5)]
+        if all(key in opts for key in threshold_keys):
+            self.static_data["thresholds"] = [int(opts[key]) for key in threshold_keys]
 
-        if "threshold_1_color" in opts:
-            self.static_data["colors"] = [
-                tuple(opts["threshold_1_color"]),
-                tuple(opts["threshold_2_color"]),
-                tuple(opts["threshold_3_color"]),
-                tuple(opts["threshold_4_color"]),
-            ]
+        color_keys = [f"threshold_{i}_color" for i in range(1, 5)]
+        if all(key in opts for key in color_keys):
+            self.static_data["colors"] = [tuple(opts[key]) for key in color_keys]
 
         self.last_seen_time = 0.0
         self.force_reset_flag = False
@@ -280,7 +278,11 @@ class HydraoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """
         last_info = async_last_service_info(self.hass, self.address, connectable=False)
         if last_info:
-            self._last_advertisement_time = time.monotonic()
+            # Use the advertisement's own timestamp (same monotonic clock),
+            # not "now": a cached advertisement can be minutes old, and
+            # counting it as fresh would trigger a pointless connection
+            # attempt at startup.
+            self._last_advertisement_time = last_info.time
 
         @callback
         def _async_on_advertisement(
@@ -380,6 +382,14 @@ class HydraoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "Refusing to sync thresholds %s to the device: they must "
                 "be strictly increasing (Threshold 1 < 2 < 3 < 4).",
                 new_thresh,
+            )
+        elif not thresholds_fit_in_byte(new_thresh):
+            _LOGGER.warning(
+                "Refusing to sync thresholds %s to the device: each one must "
+                "be between %d and %d.",
+                new_thresh,
+                MIN_THRESHOLD_VALUE,
+                MAX_THRESHOLD_VALUE,
             )
         elif live_thresholds is None or live_thresholds != new_thresh:
             self.pending_thresholds = new_thresh
@@ -762,8 +772,11 @@ class HydraoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 if new_data.get("hardware", "unknown") == "unknown":
                     try:
                         hw = await client.read_gatt_char(CHAR_HARDWARE)
-                        new_data["hardware"] = str(hw[0])
-                        entry_needs_update = True
+                        if hw:
+                            new_data["hardware"] = str(hw[0])
+                            entry_needs_update = True
+                        else:
+                            _LOGGER.warning("Could not read Hardware: empty value")
                     except _BLE_TRANSIENT_ERRORS as e:
                         _LOGGER.warning("Could not read Hardware: %s", e)
 
@@ -1059,7 +1072,7 @@ class HydraoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "firmware": self.static_data.get("firmware", "unknown"),
             "hardware": self.static_data.get("hardware", "unknown"),
             "device_id": self.static_data.get("device_id", "unknown"),
-            "temperature": 0.0
+            "temperature": None
             if self._awaiting_manual_reset_confirmation
             else temperature,
             "total_volume": float(total_raw),
@@ -1179,7 +1192,9 @@ class HydraoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.last_valid_data["shower_volume_comfort"] = 0.0
         self.last_valid_data["shower_duration_comfort"] = 0.0
         self.last_valid_data["flow_rate"] = 0.0
-        self.last_valid_data["temperature"] = 0.0
+        # Unknown, not 0 C: a zero would be recorded as a real reading and
+        # drag down the history and its averages.
+        self.last_valid_data["temperature"] = None
 
         if "raw" in self.last_valid_data:
             self.last_valid_data["raw"] = dict(self.last_valid_data["raw"])

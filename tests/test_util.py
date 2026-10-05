@@ -17,6 +17,7 @@ from custom_components.hydrao_custom.util import (
     duration_ticks_delta,
     is_valid_temp,
     pairwise_increasing_errors,
+    thresholds_fit_in_byte,
     thresholds_strictly_increasing,
 )
 
@@ -141,6 +142,12 @@ def test_thresholds_strictly_increasing():
     assert thresholds_strictly_increasing([10, 20, 30, 40])
     assert not thresholds_strictly_increasing([10, 20, 20, 40])
     assert not thresholds_strictly_increasing([10, 30, 20, 40])
+
+
+def test_thresholds_fit_in_byte():
+    assert thresholds_fit_in_byte([0, 10, 100, 255])
+    assert not thresholds_fit_in_byte([10, 20, 30, 256])
+    assert not thresholds_fit_in_byte([-1, 20, 30, 40])
 
 
 def test_pairwise_increasing_errors_flags_the_offending_field():

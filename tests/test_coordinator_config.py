@@ -81,6 +81,21 @@ async def test_options_are_loaded_into_the_coordinator(hass, mock_entry):
     ]
 
 
+async def test_partial_threshold_options_do_not_stop_the_setup(hass, mock_entry):
+    """Only some thresholds / colors stored: the coordinator must still be
+    created, and leave them to be read from the device."""
+    mock_entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(
+        mock_entry,
+        options={"threshold_1": 10, "threshold_1_color": [0, 0, 255]},
+    )
+
+    coord = HydraoDataUpdateCoordinator(hass, mock_entry)
+
+    assert "thresholds" not in coord.static_data
+    assert "colors" not in coord.static_data
+
+
 async def test_out_of_range_soaping_option_is_clamped_at_startup(hass, mock_entry):
     mock_entry.add_to_hass(hass)
     hass.config_entries.async_update_entry(mock_entry, options={"soaping_duration": 5})
@@ -126,13 +141,28 @@ async def test_listener_registers_a_passive_callback_and_tracks_adverts(coordina
 
 
 async def test_listener_counts_an_advert_already_seen_at_startup(coordinator):
+    seen_just_now = MagicMock(time=time.monotonic())
     with (
-        patch(f"{MOD}.async_last_service_info", return_value=MagicMock()),
+        patch(f"{MOD}.async_last_service_info", return_value=seen_just_now),
         patch(f"{MOD}.async_register_callback"),
     ):
         coordinator.async_start_bluetooth_listener()
 
-    assert coordinator._last_advertisement_time > 0.0
+    assert coordinator._last_advertisement_time == seen_just_now.time
+    assert coordinator._has_recent_advertisement() is True
+
+
+async def test_listener_ignores_a_stale_advert_at_startup(coordinator):
+    """A cached advertisement can be old: it must not make the device look
+    present, which would trigger a pointless connection attempt."""
+    stale = MagicMock(time=time.monotonic() - 60)
+    with (
+        patch(f"{MOD}.async_last_service_info", return_value=stale),
+        patch(f"{MOD}.async_register_callback"),
+    ):
+        coordinator.async_start_bluetooth_listener()
+
+    assert coordinator._has_recent_advertisement() is False
 
 
 async def test_no_advertisement_is_never_recent(coordinator):
@@ -316,6 +346,20 @@ async def test_non_increasing_thresholds_are_refused_with_a_warning(
 
     assert coordinator.pending_thresholds is None
     assert "strictly increasing" in caplog.text
+
+
+async def test_thresholds_that_do_not_fit_one_byte_are_refused_with_a_warning(
+    coordinator, caplog
+):
+    coordinator.static_data["thresholds"] = [5, 15, 25, 35]
+    coordinator.static_data["colors"] = [(0, 0, 0)] * 4
+    options = {**FULL_OPTIONS, "threshold_4": 300}
+
+    with caplog.at_level(logging.WARNING):
+        coordinator._queue_pending_writes_from_options(options)
+
+    assert coordinator.pending_thresholds is None
+    assert "between 0 and 255" in caplog.text
 
 
 # ---------------------------------------------------------------------------

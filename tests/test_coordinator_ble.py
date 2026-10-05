@@ -219,6 +219,30 @@ async def test_unreadable_identity_is_logged_and_does_not_stop_the_connection(
     assert coordinator.last_valid_data["total_volume"] == 500.0
 
 
+async def test_empty_hardware_value_is_ignored_without_crashing(
+    hass, mock_entry, coordinator, ble, fast_sleep, caplog
+):
+    """An empty characteristic used to raise an IndexError (hw[0])."""
+    client = FakeBleClient(
+        {
+            CHAR_FIRMWARE: b"1.2.3\x00",
+            CHAR_HARDWARE: b"",
+            CHAR_UNIQUE_ID: bytes.fromhex("0a0b"),
+            **live_reads(),
+        }
+    )
+    ble.connect(client)
+
+    with caplog.at_level(logging.WARNING):
+        await coordinator._connect_and_read_stream()
+
+    assert "Could not read Hardware: empty value" in caplog.text
+    assert "hardware" not in mock_entry.data
+    # the rest of the identity and the live data were still handled
+    assert mock_entry.data["firmware"] == "1.2.3"
+    assert coordinator.last_valid_data["total_volume"] == 500.0
+
+
 async def test_connection_publishes_live_data_and_success_status(
     hass, mock_entry, coordinator, ble, fast_sleep
 ):
