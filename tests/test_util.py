@@ -15,7 +15,7 @@ from custom_components.hydrao_custom.util import (
     clamp_soaping_duration,
     comfort_fraction,
     duration_ticks_delta,
-    is_valid_temp,
+    is_valid_comfort_threshold,
     pairwise_increasing_errors,
     storage_key,
     thresholds_fit_in_byte,
@@ -172,5 +172,5 @@ def test_pairwise_increasing_errors_skips_missing_values():
 @pytest.mark.parametrize(
     ("temp", "valid"), [(-0.1, False), (0, True), (50, True), (50.1, False)]
 )
-def test_is_valid_temp(temp, valid):
-    assert is_valid_temp(temp) is valid
+def test_is_valid_comfort_threshold(temp, valid):
+    assert is_valid_comfort_threshold(temp) is valid

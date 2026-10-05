@@ -41,6 +41,7 @@ This release is about accuracy and reliability: shower durations and the cold / 
 - The manifest declares the `platinum` quality scale (self-assessed in `quality_scale.yaml`, hassfest does not validate it for custom integrations), with tests keeping it consistent with the code.
 - The **Bluetooth Signal** (RSSI) sensor now updates its state at most once per second, and only when the value changes.
 - `manifest.json` no longer lists `bleak` and `bleak-retry-connector` as requirements: they come with Home Assistant's Bluetooth integration, which this one depends on. A `ruff.toml` enables stricter lint rules (bug-finding families such as `B`, `ASYNC`, `PERF`, `UP`).
+- Internal refactoring, no change in behaviour: each sensor now carries its own value function (`HydraoSensorEntityDescription`, as in Home Assistant's own integrations) instead of three separate lists of keys; the numeric fields of the forms share one helper; the raw-frame constants and the form's threshold limits have names; `is_valid_temp` is now `is_valid_comfort_threshold`, which says what it bounds.
 
 ### 📚 Documentation
 - `README.md` / `README.fr.md`: minimum Home Assistant version, the new sensors, and new sections *How Data Is Updated*, *Use Cases*, *Automation Examples*, *Known Limitations* and *Removal*.

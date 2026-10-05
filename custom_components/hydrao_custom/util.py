@@ -51,8 +51,13 @@ def pairwise_increasing_errors(
     return errors
 
 
-def is_valid_temp(temp: float) -> bool:
-    """Check if the temperature is within the valid 0-50 C range."""
+def is_valid_comfort_threshold(temp: float) -> bool:
+    """Check that a comfort temperature setting is within 0-50 C.
+
+    This bounds what the user may set (it matches the `number` entity); it is
+    not the plausibility check of a measured temperature, which is
+    `is_plausible_water_temp`.
+    """
     return 0 <= temp <= 50
 
 

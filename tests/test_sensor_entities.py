@@ -8,7 +8,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.components.sensor import (
-    SensorEntityDescription,
     SensorExtraStoredData,
 )
 from homeassistant.const import STATE_UNAVAILABLE
@@ -106,21 +105,24 @@ async def test_unconvertible_restored_value_is_returned_as_is(coordinator):
     assert sensor.native_value == "unknown"
 
 
-async def test_non_numeric_keys_pass_their_value_through(coordinator):
-    sensor = HydraoSensor(coordinator, SensorEntityDescription(key="firmware"))
-    coordinator.data = {"firmware": "1.2.3"}
+def test_only_the_temperature_and_the_time_to_comfort_may_be_unknown():
+    """For these two, "unknown" is a real answer once data has been published;
+    every other sensor falls back on the value restored from its last state."""
+    unknown_is_valid = {d.key for d in SENSOR_DESCRIPTIONS if d.none_is_valid}
 
-    assert sensor.native_value == "1.2.3"
+    assert unknown_is_valid == {"temperature", "time_to_comfort"}
 
 
-async def test_non_numeric_keys_fall_back_to_the_restored_value_untouched(
-    coordinator,
+@pytest.mark.parametrize("desc", SENSOR_DESCRIPTIONS, ids=lambda d: d.key)
+async def test_every_sensor_has_nothing_to_show_before_the_first_reading(
+    coordinator, desc
 ):
-    sensor = HydraoSensor(coordinator, SensorEntityDescription(key="firmware"))
-    sensor._restored_value = "1.0.0"
-    coordinator.data = {}
+    """No description may fail on a coordinator that has no data yet."""
+    coordinator.data = None
 
-    assert sensor.native_value == "1.0.0"
+    value = HydraoSensor(coordinator, desc).native_value
+
+    assert value in (None, 0.0)  # the flow rate reads 0 when there is nothing
 
 
 # ---------------------------------------------------------------------------

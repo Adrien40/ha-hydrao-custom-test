@@ -41,6 +41,7 @@ Cette version est consacrée à la précision et à la fiabilité : les durées 
 - Le manifest déclare l'échelle de qualité `platinum` (auto-évaluée dans `quality_scale.yaml`, hassfest ne la valide pas pour les intégrations personnalisées), avec des tests qui la gardent cohérente avec le code.
 - Le capteur **Signal Bluetooth** (RSSI) ne met à jour son état qu'une fois par seconde au plus, et seulement si la valeur change.
 - `manifest.json` ne déclare plus `bleak` ni `bleak-retry-connector` comme dépendances : ils sont fournis par l'intégration Bluetooth de Home Assistant, dont celle-ci dépend. Un `ruff.toml` active des règles de lint plus strictes (familles qui trouvent des bugs, comme `B`, `ASYNC`, `PERF`, `UP`).
+- Refactorisation interne, sans changement de comportement : chaque capteur porte désormais sa propre fonction de valeur (`HydraoSensorEntityDescription`, comme dans les intégrations officielles de Home Assistant) au lieu de trois listes de clés séparées ; les champs numériques des formulaires partagent un même helper ; les constantes de décodage des trames et les bornes des seuils du formulaire ont un nom ; `is_valid_temp` devient `is_valid_comfort_threshold`, qui dit ce qu'elle borne.
 
 ### 📚 Documentation
 - `README.md` / `README.fr.md` : version minimale de Home Assistant, les nouveaux capteurs, et les nouvelles sections *Mise à jour des données*, *Cas d'usage*, *Exemples d'automatisations*, *Limitations connues* et *Suppression de l'intégration*.

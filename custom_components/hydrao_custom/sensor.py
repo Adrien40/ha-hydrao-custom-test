@@ -2,7 +2,9 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import time
-from typing import Any, ClassVar, cast
+from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Any, cast
 
 from homeassistant.components.bluetooth import (
     BluetoothCallbackMatcher,
@@ -54,25 +56,83 @@ PARALLEL_UPDATES = 0
 # strength is a support figure: a once-per-second refresh is plenty.
 RSSI_MIN_UPDATE_INTERVAL = 1.0
 
+
+@dataclass(frozen=True, kw_only=True)
+class HydraoSensorEntityDescription(SensorEntityDescription):
+    """A sensor whose value comes from the coordinator.
+
+    `value_fn` reads the live value. When it returns None, the sensor falls
+    back on the value restored from its last state (nothing has been received
+    yet), unless `none_is_valid` is set: for those sensors "unknown" is a real
+    answer once the coordinator has published data (a temperature that cannot
+    be decoded, a time to comfort that was not observed).
+    """
+
+    value_fn: Callable[[HydraoDataUpdateCoordinator], Any]
+    none_is_valid: bool = False
+
+
+def _live(key: str) -> Callable[[HydraoDataUpdateCoordinator], Any]:
+    """The value of `key` in the latest data published by the coordinator."""
+
+    def value(coordinator: HydraoDataUpdateCoordinator) -> Any:
+        return (coordinator.data or {}).get(key)
+
+    return value
+
+
+def _live_raw(key: str) -> Callable[[HydraoDataUpdateCoordinator], Any]:
+    """Same, for the figures the coordinator keeps under its "raw" entry."""
+
+    def value(coordinator: HydraoDataUpdateCoordinator) -> Any:
+        return (coordinator.data or {}).get("raw", {}).get(key)
+
+    return value
+
+
+def _flow_rate(coordinator: HydraoDataUpdateCoordinator) -> Any:
+    """The flow is 0 whenever there is nothing to report: no water, no data."""
+    return (coordinator.data or {}).get("flow_rate") or 0.0
+
+
+def _threshold(index: int) -> Callable[[HydraoDataUpdateCoordinator], Any]:
+    """One of the four volume thresholds, as last read from the device."""
+
+    def value(coordinator: HydraoDataUpdateCoordinator) -> Any:
+        thresholds = coordinator.static_data.get("thresholds")
+        if thresholds is None:
+            return None
+        try:
+            return float(thresholds[index])
+        except (IndexError, ValueError, TypeError):
+            return None
+
+    return value
+
+
 SENSOR_DESCRIPTIONS = [
-    SensorEntityDescription(
+    HydraoSensorEntityDescription(
         key="temperature",
+        value_fn=_live("temperature"),
+        none_is_valid=True,
         translation_key="temperature",
         device_class=SensorDeviceClass.TEMPERATURE,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=1,
     ),
-    SensorEntityDescription(
+    HydraoSensorEntityDescription(
         key="total_volume",
+        value_fn=_live("total_volume"),
         translation_key="total_volume",
         device_class=SensorDeviceClass.WATER,
         native_unit_of_measurement=UnitOfVolume.LITERS,
         state_class=SensorStateClass.TOTAL_INCREASING,
         suggested_display_precision=0,
     ),
-    SensorEntityDescription(
+    HydraoSensorEntityDescription(
         key="flow_rate",
+        value_fn=_flow_rate,
         translation_key="flow_rate",
         device_class=SensorDeviceClass.VOLUME_FLOW_RATE,
         native_unit_of_measurement=UnitOfVolumeFlowRate.LITERS_PER_MINUTE,
@@ -80,48 +140,54 @@ SENSOR_DESCRIPTIONS = [
         entity_category=EntityCategory.DIAGNOSTIC,
         suggested_display_precision=1,
     ),
-    SensorEntityDescription(
+    HydraoSensorEntityDescription(
         key="wasted_volume",
+        value_fn=_live("wasted_volume"),
         translation_key="wasted_volume",
         device_class=SensorDeviceClass.WATER,
         native_unit_of_measurement=UnitOfVolume.LITERS,
         state_class=SensorStateClass.TOTAL_INCREASING,
         suggested_display_precision=0,
     ),
-    SensorEntityDescription(
+    HydraoSensorEntityDescription(
         key="wasted_volume_total",
+        value_fn=_live("wasted_volume_total"),
         translation_key="wasted_volume_total",
         device_class=SensorDeviceClass.WATER,
         native_unit_of_measurement=UnitOfVolume.LITERS,
         state_class=SensorStateClass.TOTAL_INCREASING,
         suggested_display_precision=0,
     ),
-    SensorEntityDescription(
+    HydraoSensorEntityDescription(
         key="shower_volume_comfort",
+        value_fn=_live("shower_volume_comfort"),
         translation_key="shower_volume_comfort",
         device_class=SensorDeviceClass.WATER,
         native_unit_of_measurement=UnitOfVolume.LITERS,
         state_class=SensorStateClass.TOTAL_INCREASING,
         suggested_display_precision=0,
     ),
-    SensorEntityDescription(
+    HydraoSensorEntityDescription(
         key="shower_volume_comfort_total",
+        value_fn=_live("shower_volume_comfort_total"),
         translation_key="shower_volume_comfort_total",
         device_class=SensorDeviceClass.WATER,
         native_unit_of_measurement=UnitOfVolume.LITERS,
         state_class=SensorStateClass.TOTAL_INCREASING,
         suggested_display_precision=0,
     ),
-    SensorEntityDescription(
+    HydraoSensorEntityDescription(
         key="shower_volume_raw",
+        value_fn=_live_raw("shower_volume_raw"),
         translation_key="shower_volume_raw",
         device_class=SensorDeviceClass.WATER,
         native_unit_of_measurement=UnitOfVolume.LITERS,
         state_class=SensorStateClass.TOTAL_INCREASING,
         suggested_display_precision=0,
     ),
-    SensorEntityDescription(
+    HydraoSensorEntityDescription(
         key="shower_duration",
+        value_fn=_live_raw("shower_duration"),
         translation_key="shower_duration",
         device_class=SensorDeviceClass.DURATION,
         native_unit_of_measurement=UnitOfTime.SECONDS,
@@ -129,8 +195,9 @@ SENSOR_DESCRIPTIONS = [
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
     ),
-    SensorEntityDescription(
+    HydraoSensorEntityDescription(
         key="shower_duration_comfort",
+        value_fn=_live("shower_duration_comfort"),
         translation_key="shower_duration_comfort",
         device_class=SensorDeviceClass.DURATION,
         native_unit_of_measurement=UnitOfTime.SECONDS,
@@ -138,8 +205,9 @@ SENSOR_DESCRIPTIONS = [
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
     ),
-    SensorEntityDescription(
+    HydraoSensorEntityDescription(
         key="shower_duration_cold",
+        value_fn=_live("shower_duration_cold"),
         translation_key="shower_duration_cold",
         device_class=SensorDeviceClass.DURATION,
         native_unit_of_measurement=UnitOfTime.SECONDS,
@@ -149,8 +217,10 @@ SENSOR_DESCRIPTIONS = [
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
     ),
-    SensorEntityDescription(
+    HydraoSensorEntityDescription(
         key="time_to_comfort",
+        value_fn=_live("time_to_comfort"),
+        none_is_valid=True,
         translation_key="time_to_comfort",
         device_class=SensorDeviceClass.DURATION,
         native_unit_of_measurement=UnitOfTime.SECONDS,
@@ -160,26 +230,30 @@ SENSOR_DESCRIPTIONS = [
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
     ),
-    SensorEntityDescription(
+    HydraoSensorEntityDescription(
         key="threshold_1",
+        value_fn=_threshold(0),
         translation_key="threshold_1",
         entity_category=EntityCategory.DIAGNOSTIC,
         native_unit_of_measurement=UnitOfVolume.LITERS,
     ),
-    SensorEntityDescription(
+    HydraoSensorEntityDescription(
         key="threshold_2",
+        value_fn=_threshold(1),
         translation_key="threshold_2",
         entity_category=EntityCategory.DIAGNOSTIC,
         native_unit_of_measurement=UnitOfVolume.LITERS,
     ),
-    SensorEntityDescription(
+    HydraoSensorEntityDescription(
         key="threshold_3",
+        value_fn=_threshold(2),
         translation_key="threshold_3",
         entity_category=EntityCategory.DIAGNOSTIC,
         native_unit_of_measurement=UnitOfVolume.LITERS,
     ),
-    SensorEntityDescription(
+    HydraoSensorEntityDescription(
         key="threshold_4",
+        value_fn=_threshold(3),
         translation_key="threshold_4",
         entity_category=EntityCategory.DIAGNOSTIC,
         native_unit_of_measurement=UnitOfVolume.LITERS,
@@ -214,10 +288,12 @@ async def async_setup_entry(
 
 
 class HydraoSensor(HydraoEntity, RestoreSensor):
+    entity_description: HydraoSensorEntityDescription
+
     def __init__(
         self,
         coordinator: HydraoDataUpdateCoordinator,
-        description: SensorEntityDescription,
+        description: HydraoSensorEntityDescription,
     ) -> None:
         super().__init__(coordinator, description.key)
         self.entity_description = description
@@ -285,74 +361,29 @@ class HydraoSensor(HydraoEntity, RestoreSensor):
         except (ValueError, TypeError, HomeAssistantError):
             return value
 
-    _RAW_KEYS: ClassVar[set[str]] = {"shower_volume_raw", "shower_duration"}
-    # Keys for which None coming from the coordinator is a real answer
-    # ("not reached / unknown", or a temperature that could not be decoded),
-    # not a missing value to be restored.
-    _NULLABLE_KEYS: ClassVar[frozenset[str]] = frozenset(
-        {"time_to_comfort", "temperature"}
-    )
-    _NUMERIC_KEYS = frozenset(
-        {
-            "total_volume",
-            "shower_volume_comfort",
-            "shower_volume_comfort_total",
-            "wasted_volume",
-            "wasted_volume_total",
-            "shower_volume_raw",
-            "temperature",
-            "shower_duration",
-            "shower_duration_comfort",
-            "shower_duration_cold",
-            "time_to_comfort",
-            "flow_rate",
-        }
-    )
-
     @property
     def native_value(self) -> StateType:
-        data = self.coordinator.data or {}
-        key = self.entity_description.key
+        description = self.entity_description
+        value = description.value_fn(self.coordinator)
+        if value is not None:
+            return float(value)
 
-        if key.startswith("threshold_"):
-            idx = int(key.split("_")[1]) - 1
-            if "thresholds" in self.coordinator.static_data:
-                try:
-                    return float(self.coordinator.static_data["thresholds"][idx])
-                except (IndexError, ValueError, TypeError):
-                    pass
-            if self._restored_value is not None:
-                try:
-                    return float(self._restored_value)
-                except (ValueError, TypeError):
-                    pass
-            return cast(StateType, self._restored_value)
-
-        if key in self._NULLABLE_KEYS and key in data:
-            nullable_val = data[key]
-            return None if nullable_val is None else float(nullable_val)
-
-        if key in self._RAW_KEYS:
-            val = data.get("raw", {}).get(key)
-        else:
-            val = data.get(key)
-
-        if val is None:
-            if key == "flow_rate":
-                return 0.0
-            if self._restored_value is not None:
-                try:
-                    if key in self._NUMERIC_KEYS:
-                        return float(self._restored_value)
-                except (ValueError, TypeError):
-                    pass
-                return cast(StateType, self._restored_value)
+        if description.none_is_valid and description.key in (
+            self.coordinator.data or {}
+        ):
             return None
 
-        if key in self._NUMERIC_KEYS:
-            return float(val)
+        return self._restored_number()
 
-        return cast(StateType, val)
+    def _restored_number(self) -> StateType:
+        """The value restored from the last state, as a number when it is one."""
+        restored = self._restored_value
+        if restored is None:
+            return None
+        try:
+            return float(restored)
+        except (ValueError, TypeError):
+            return cast(StateType, restored)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

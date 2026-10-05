@@ -56,6 +56,7 @@ from .const import (
     DEFAULT_SOAPING_DURATION,
     DOMAIN,
     DURATION_TICKS_PER_SECOND,
+    FLOW_RAW_CONSTANT,
     ISSUE_TRACKER_URL,
     MAX_NEW_SHOWER_ATTEMPTS,
     MAX_THRESHOLD_VALUE,
@@ -64,6 +65,7 @@ from .const import (
     MIN_WATER_TEMP,
     STORAGE_SAVE_DELAY,
     STORAGE_VERSION,
+    TEMPERATURE_RAW_UNITS_PER_DEGREE,
     HydraoConfigEntry,
 )
 from .util import (
@@ -951,7 +953,9 @@ class HydraoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         total_raw = (vol_data[1] << 8) | vol_data[0]
         shower_raw = float((vol_data[3] << 8) | vol_data[2])
         duration_ticks = self._duration_raw_ticks(dur_data)
-        decoded_temp = ((temp_data[1] << 8) | temp_data[0]) / 2.0
+        decoded_temp = (
+            (temp_data[1] << 8) | temp_data[0]
+        ) / TEMPERATURE_RAW_UNITS_PER_DEGREE
         # None when the reading cannot be a real water temperature: it is
         # then left out of every cold / comfort computation instead of being
         # counted as (very) hot water.
@@ -1083,7 +1087,7 @@ class HydraoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if flow_raw_data and len(flow_raw_data) >= 2:
             raw_v1 = (flow_raw_data[1] << 8) | flow_raw_data[0]
             if raw_v1 > 0:
-                flow_rate = 1800.0 / raw_v1
+                flow_rate = FLOW_RAW_CONSTANT / raw_v1
 
         if delta_vol == 0 and delta_dur == 0:
             flow_rate = 0.0

@@ -21,9 +21,11 @@ from .const import (
     DEFAULT_SOAPING_DURATION,
     DOMAIN,
     MAX_SOAPING_DURATION,
+    MAX_THRESHOLD_LITERS,
     MIN_SOAPING_DURATION,
+    MIN_THRESHOLD_LITERS,
 )
-from .util import is_valid_temp, pairwise_increasing_errors
+from .util import is_valid_comfort_threshold, pairwise_increasing_errors
 
 if TYPE_CHECKING:
     from .coordinator import HydraoDataUpdateCoordinator
@@ -41,6 +43,24 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 THRESHOLD_KEYS = ["threshold_1", "threshold_2", "threshold_3", "threshold_4"]
+
+
+def _number_selector(
+    unit: str, *, step: float | None = None, read_only: bool = False
+) -> selector.NumberSelector:
+    """A number box with a unit, as every numeric field of the forms uses.
+
+    Neither a minimum nor a maximum is set, on purpose: see the note at the top
+    of this file.
+    """
+    config = selector.NumberSelectorConfig(
+        mode=selector.NumberSelectorMode.BOX, unit_of_measurement=unit
+    )
+    if step is not None:
+        config["step"] = step
+    if read_only:
+        config["read_only"] = True
+    return selector.NumberSelector(config)
 
 
 class HydraoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -75,7 +95,7 @@ class HydraoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 "min_temp_threshold", DEFAULT_MIN_TEMP_THRESHOLD
             )
 
-            if not is_valid_temp(default_temp):
+            if not is_valid_comfort_threshold(default_temp):
                 errors["min_temp_threshold"] = "min_temp_out_of_range"
 
             if not errors:
@@ -94,13 +114,7 @@ class HydraoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             {
                 vol.Required(
                     "min_temp_threshold", default=default_temp
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        mode=selector.NumberSelectorMode.BOX,
-                        step=0.5,
-                        unit_of_measurement="°C",
-                    )
-                ),
+                ): _number_selector("°C", step=0.5),
             }
         )
 
@@ -133,7 +147,7 @@ class HydraoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if not re.fullmatch(r"[0-9A-F]{12}", cleaned):
                 errors["base"] = "invalid_mac"
 
-            if not is_valid_temp(default_temp):
+            if not is_valid_comfort_threshold(default_temp):
                 errors["min_temp_threshold"] = "min_temp_out_of_range"
 
             if not errors:
@@ -159,13 +173,7 @@ class HydraoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             schema_fields[vol.Required(CONF_ADDRESS)] = str
 
         schema_fields[vol.Required("min_temp_threshold", default=default_temp)] = (
-            selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    mode=selector.NumberSelectorMode.BOX,
-                    step=0.5,
-                    unit_of_measurement="°C",
-                )
-            )
+            _number_selector("°C", step=0.5)
         )
 
         data_schema = vol.Schema(schema_fields)
@@ -199,7 +207,9 @@ class HydraoOptionsFlowHandler(config_entries.OptionsFlow):
 
             if user_input.get("reset_to_defaults"):
                 comfort_temp_val = user_input.get("min_temp_threshold")
-                if comfort_temp_val is not None and not is_valid_temp(comfort_temp_val):
+                if comfort_temp_val is not None and not is_valid_comfort_threshold(
+                    comfort_temp_val
+                ):
                     errors["min_temp_threshold"] = "min_temp_out_of_range"
                     errors["base"] = "min_temp_out_of_range"
 
@@ -242,7 +252,7 @@ class HydraoOptionsFlowHandler(config_entries.OptionsFlow):
                         and key.startswith("threshold_")
                         and not key.endswith("_color")
                         and key not in errors
-                        and not (1 <= val <= 100)
+                        and not (MIN_THRESHOLD_LITERS <= val <= MAX_THRESHOLD_LITERS)
                     ):
                         errors[key] = "value_out_of_range"
 
@@ -253,7 +263,9 @@ class HydraoOptionsFlowHandler(config_entries.OptionsFlow):
                     errors["soaping_duration"] = "soaping_duration_out_of_range"
 
                 comfort_temp_val = user_input.get("min_temp_threshold")
-                if comfort_temp_val is not None and not is_valid_temp(comfort_temp_val):
+                if comfort_temp_val is not None and not is_valid_comfort_threshold(
+                    comfort_temp_val
+                ):
                     errors["min_temp_threshold"] = "min_temp_out_of_range"
 
                 if errors:
@@ -423,20 +435,8 @@ class HydraoOptionsFlowHandler(config_entries.OptionsFlow):
     ) -> tuple[vol.Marker, selector.Selector[Any]]:
         current = get_val(key, int)
         if current is vol.UNDEFINED:
-            return vol.Optional(key), selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    mode=selector.NumberSelectorMode.BOX,
-                    unit_of_measurement="L",
-                    read_only=True,
-                )
-            )
-        return vol.Required(key, default=current), selector.NumberSelector(
-            selector.NumberSelectorConfig(
-                mode=selector.NumberSelectorMode.BOX,
-                step=1,
-                unit_of_measurement="L",
-            )
-        )
+            return vol.Optional(key), _number_selector("L", read_only=True)
+        return vol.Required(key, default=current), _number_selector("L", step=1)
 
     @staticmethod
     def _color_field(
@@ -459,13 +459,7 @@ class HydraoOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input and user_input.get("soaping_duration") is not None:
             return vol.Required(
                 "soaping_duration", default=int(user_input["soaping_duration"])
-            ), selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    mode=selector.NumberSelectorMode.BOX,
-                    step=10,
-                    unit_of_measurement="s",
-                )
-            )
+            ), _number_selector("s", step=10)
 
         live_soaping = (
             coordinator.static_data.get("soaping_duration") if coordinator else None
@@ -474,22 +468,12 @@ class HydraoOptionsFlowHandler(config_entries.OptionsFlow):
             live_soaping = opts.get("soaping_duration", data.get("soaping_duration"))
 
         if live_soaping is None:
-            return vol.Optional("soaping_duration"), selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    mode=selector.NumberSelectorMode.BOX,
-                    unit_of_measurement="s",
-                    read_only=True,
-                )
+            return vol.Optional("soaping_duration"), _number_selector(
+                "s", read_only=True
             )
         return vol.Required(
             "soaping_duration", default=int(live_soaping)
-        ), selector.NumberSelector(
-            selector.NumberSelectorConfig(
-                mode=selector.NumberSelectorMode.BOX,
-                step=10,
-                unit_of_measurement="s",
-            )
-        )
+        ), _number_selector("s", step=10)
 
     @staticmethod
     def _comfort_temp_field(
@@ -510,14 +494,8 @@ class HydraoOptionsFlowHandler(config_entries.OptionsFlow):
         )
         if user_input and user_input.get("min_temp_threshold") is not None:
             default = float(user_input["min_temp_threshold"])
-        return vol.Required(
-            "min_temp_threshold", default=default
-        ), selector.NumberSelector(
-            selector.NumberSelectorConfig(
-                mode=selector.NumberSelectorMode.BOX,
-                step=0.5,
-                unit_of_measurement="°C",
-            )
+        return vol.Required("min_temp_threshold", default=default), _number_selector(
+            "°C", step=0.5
         )
 
     @staticmethod

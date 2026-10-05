@@ -54,6 +54,17 @@ DEFAULT_MIN_TEMP_THRESHOLD = 33.0
 MIN_WATER_TEMP = 0.0
 MAX_WATER_TEMP = 100.0
 
+# Raw frame decoding. The water temperature is a little-endian uint16 counted
+# in half degrees; the flow, in litres per minute, is this constant divided by
+# the raw value the device reports (the two are inversely proportional).
+TEMPERATURE_RAW_UNITS_PER_DEGREE = 2.0
+FLOW_RAW_CONSTANT = 1800.0
+
+# What the options form accepts for a volume threshold (litres). The device
+# itself can store more: see MAX_THRESHOLD_VALUE below.
+MIN_THRESHOLD_LITERS = 1
+MAX_THRESHOLD_LITERS = 100
+
 # Each threshold is stored on a single byte of the device's config frame.
 MIN_THRESHOLD_VALUE = 0
 MAX_THRESHOLD_VALUE = 255
