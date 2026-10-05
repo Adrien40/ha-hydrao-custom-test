@@ -150,6 +150,35 @@ async def test_time_to_comfort_unknown_when_session_starts_warm(coordinator):
     assert coordinator.last_valid_data["time_to_comfort"] is None
 
 
+async def test_time_to_comfort_when_a_reading_lands_exactly_on_the_threshold(
+    coordinator,
+):
+    """The probe resolves 0.5 C and the threshold moves in 0.5 C steps, so a
+    reading equal to the threshold is common during a gradual warm-up. The
+    interpolated comfort share of that interval is exactly 0, which must not
+    prevent the time to comfort from being recorded."""
+    threshold = coordinator.min_temp_threshold
+    feed(coordinator, shower=10, ticks=500, temp=threshold - 2.0)  # 10 s cold
+    feed(coordinator, shower=20, ticks=1000, temp=threshold)  # right on it
+    feed(coordinator, shower=30, ticks=1500, temp=threshold + 1.0)
+
+    assert coordinator.last_valid_data["time_to_comfort"] == pytest.approx(20.0)
+
+
+async def test_time_to_comfort_with_a_gradual_half_degree_warm_up(coordinator):
+    """Realistic warm-up: the temperature rises by one probe step (0.5 C)
+    between readings, 10 s apart, and passes through the threshold itself."""
+    threshold = coordinator.min_temp_threshold
+    # 7 readings up to and including the one at the threshold, then 2 above.
+    temps = [threshold - 3.0 + 0.5 * step for step in range(9)]
+    for i, temp in enumerate(temps, start=1):
+        feed(coordinator, shower=10 * i, ticks=500 * i, temp=temp)
+
+    assert coordinator.last_valid_data["time_to_comfort"] == pytest.approx(70.0)
+    assert coordinator.session_shower_duration_cold == pytest.approx(70.0)
+    assert coordinator.session_shower_duration_comfort == pytest.approx(20.0)
+
+
 async def test_new_session_clears_cold_duration_and_time_to_comfort(coordinator):
     feed(coordinator, shower=50, ticks=3000, temp=20.0)
     feed(coordinator, shower=80, ticks=4500, temp=35.0)
