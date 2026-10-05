@@ -154,7 +154,7 @@
         "name": "Durée Douche Eau Froide"
       },
       "time_to_comfort": {
-        "name": "Temps avant Eau Chaude"
+        "name": "Durée avant Temp. Confort"
       },
       "wasted_volume_total": {
         "name": "Volume Perdu Cumulé"
