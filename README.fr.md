@@ -110,7 +110,7 @@ Copiez le dossier `custom_components/hydrao_custom` dans le dossier `custom_comp
 | ⏱️ **Durée Douche** | s (affichée en min) | Durée brute de la douche en cours. |
 | ⏱️ **Durée Douche Confort** | s (affichée en min) | Durée passée en zone de confort. |
 | ❄️ **Durée Douche Eau Froide** | s (affichée en min) | Durée passée sous la température de confort, pour la douche en cours. Capteur de diagnostic, désactivé par défaut. |
-| ⏳ **Temps avant Eau Chaude** | s (affichée en min) | Temps écoulé avant d'atteindre la température de confort pour la première fois. Valeur figée une fois atteinte, même si l'eau refroidit ensuite. Indisponible tant qu'elle n'est pas atteinte, ou si l'eau était déjà chaude à la connexion. Capteur de diagnostic, désactivé par défaut. |
+| ⏳ **Durée avant Temp. Confort** | s (affichée en min) | Temps écoulé avant d'atteindre la température de confort pour la première fois. Valeur figée une fois atteinte, même si l'eau refroidit ensuite. Indisponible tant qu'elle n'est pas atteinte, ou si l'eau était déjà chaude à la connexion. Capteur de diagnostic, désactivé par défaut. |
 | 🌡️ **Température** | °C | Température de l'eau mesurée en direct. |
 | 🚿 **Volume Douche** | L | Volume brut de la douche en cours. |
 | 💧 **Volume Douche Confort** | L | Volume utilisé une fois la température de confort atteinte, pour la douche en cours. |
@@ -205,7 +205,7 @@ actions:
 * **L'eau doit couler** pour que l'appareil soit joignable : rien ne peut être lu ni écrit autrement. Les réglages modifiés eau coupée sont transmis à la douche suivante.
 * **Les seuils et les couleurs** ne sont modifiables qu'après une première connexion réussie.
 * La **Température de confort minimum** n'existe que dans Home Assistant et n'est jamais envoyée au Hydrao.
-* Le **Temps avant Eau Chaude** reste indisponible si l'eau était déjà chaude à la connexion.
+* La **Durée avant Temp. Confort** reste indisponible si l'eau était déjà chaude à la connexion.
 * Seul le **Hydrao Aloé (HYDRA_SHOWER)**, version matérielle 9, a été testé. Les autres modèles Hydrao devraient fonctionner mais ne sont pas validés.
 * La fiabilité dépend de la portée Bluetooth : un signal faible peut provoquer une *Erreur de connexion* ; un [proxy Bluetooth ESPHome](https://esphome.github.io/bluetooth-proxies/) près de la douche aide.
 
