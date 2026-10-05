@@ -53,10 +53,12 @@ rules:
       Set up via the UI by Bluetooth discovery or manual MAC entry, with a
       description for every field of both steps (data_description).
   dependency-transparency:
-    status: done
+    status: exempt
     comment: >-
-      Requirements are bleak and bleak-retry-connector: public sources,
-      published on PyPI. The BLE protocol itself lives in this repository.
+      The manifest declares no requirements of its own: bleak and
+      bleak-retry-connector come with Home Assistant's Bluetooth integration,
+      which this one depends on. The BLE protocol itself lives in this
+      repository.
   docs-actions:
     status: exempt
     comment: The integration provides no service actions.
@@ -256,7 +258,9 @@ rules:
   # --- Platinum -------------------------------------------------------------
   async-dependency:
     status: done
-    comment: bleak and bleak-retry-connector are asyncio libraries.
+    comment: >-
+      Bluetooth access goes through bleak and bleak-retry-connector, which are
+      asyncio libraries.
   inject-websession:
     status: exempt
     comment: The integration makes no HTTP requests.

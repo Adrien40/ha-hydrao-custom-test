@@ -4,6 +4,7 @@
 from itertools import pairwise
 
 from .const import (
+    DOMAIN,
     DURATION_TICKS_WRAP,
     DURATION_WRAP_WINDOW_TICKS,
     MAX_SOAPING_DURATION,
@@ -15,9 +16,15 @@ from .const import (
 )
 
 
+def storage_key(entry_id: str) -> str:
+    """Name of the file (in Home Assistant's .storage folder) that holds the
+    lifetime totals of one config entry."""
+    return f"{DOMAIN}.{entry_id}"
+
+
 def thresholds_strictly_increasing(values: list[int]) -> bool:
     """Return True if each value is strictly greater than the previous one."""
-    return all(values[i] < values[i + 1] for i in range(len(values) - 1))
+    return all(previous < following for previous, following in pairwise(values))
 
 
 def thresholds_fit_in_byte(values: list[int]) -> bool:

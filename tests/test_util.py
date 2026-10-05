@@ -17,6 +17,7 @@ from custom_components.hydrao_custom.util import (
     duration_ticks_delta,
     is_valid_temp,
     pairwise_increasing_errors,
+    storage_key,
     thresholds_fit_in_byte,
     thresholds_strictly_increasing,
 )
@@ -148,6 +149,11 @@ def test_thresholds_fit_in_byte():
     assert thresholds_fit_in_byte([0, 10, 100, 255])
     assert not thresholds_fit_in_byte([10, 20, 30, 256])
     assert not thresholds_fit_in_byte([-1, 20, 30, 40])
+
+
+def test_storage_key_is_unique_per_config_entry():
+    assert storage_key("abc") == "hydrao_custom.abc"
+    assert storage_key("abc") != storage_key("def")
 
 
 def test_pairwise_increasing_errors_flags_the_offending_field():

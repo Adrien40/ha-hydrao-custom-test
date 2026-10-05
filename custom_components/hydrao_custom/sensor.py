@@ -237,9 +237,13 @@ class HydraoSensor(HydraoEntity, RestoreSensor):
                 last_sensor_data.native_unit_of_measurement,
             )
 
+            # The restored value of the two total sensors is only adopted when
+            # the totals are not already saved in their own file (migration
+            # from 1.0.0, see the coordinator).
             if (
                 self.entity_description.key == "wasted_volume_total"
                 and self._restored_value is not None
+                and not self.coordinator.totals_loaded_from_store
             ):
                 try:
                     self.coordinator.restore_wasted_volume_total(
@@ -250,6 +254,7 @@ class HydraoSensor(HydraoEntity, RestoreSensor):
             elif (
                 self.entity_description.key == "shower_volume_comfort_total"
                 and self._restored_value is not None
+                and not self.coordinator.totals_loaded_from_store
             ):
                 try:
                     self.coordinator.restore_shower_volume_comfort_total(

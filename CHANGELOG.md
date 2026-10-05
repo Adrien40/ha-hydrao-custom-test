@@ -26,6 +26,7 @@ This release is about accuracy and reliability: shower durations and the cold / 
 - **A water temperature outside 0–100 °C is no longer used.** Some Hydrao revisions may encode the temperature differently, which could show hundreds of degrees and count all the water as comfortable. The *Temperature* sensor now shows *unknown*, the comfort / cold figures and the Comfort Mode Sync ignore that reading, volume, duration and flow keep working, and a single warning in the log gives the firmware, the hardware and the raw frame to report.
 - A drop of the device's duration counter that is not a wrap-around is treated as a device reset and counts for nothing, instead of producing a huge wrong duration.
 - Thresholds outside 0–255 are refused with a warning instead of being sent to the device; an empty hardware-revision value no longer raises an error; incomplete stored thresholds or colours no longer prevent the integration from loading; a cached, outdated Bluetooth advertisement is no longer mistaken for a fresh one at startup.
+- **The cumulative totals are no longer lost in a crash.** The *Total Cumulative Wasted Volume* and *Total Cumulative Comfort Shower Volume* are now saved in a file of their own within a few seconds of each change, instead of relying on Home Assistant's entity-state snapshot (taken every 15 minutes), and no longer depend on the state of the sensors. The totals of version 1.0.0 are carried over automatically at the first start; deleting the device also deletes the file.
 
 ### 🧰 Maintenance
 - Every entity now shares a common base class (`HydraoEntity`): translated names, unique ID built from the Bluetooth address, device. **Entity IDs and unique IDs are unchanged.**
@@ -38,6 +39,7 @@ This release is about accuracy and reliability: shower durations and the cold / 
 - CI: pytest + coverage workflow (95 % minimum), *Typing* workflow, and a release workflow that publishes the notes from this changelog (`scripts/release_notes.py`). `.coveragerc` measures the integration only, with branches.
 - The manifest declares the `platinum` quality scale (self-assessed in `quality_scale.yaml`, hassfest does not validate it for custom integrations), with tests keeping it consistent with the code.
 - The **Bluetooth Signal** (RSSI) sensor now updates its state at most once per second, and only when the value changes.
+- `manifest.json` no longer lists `bleak` and `bleak-retry-connector` as requirements: they come with Home Assistant's Bluetooth integration, which this one depends on. A `ruff.toml` enables stricter lint rules (bug-finding families such as `B`, `ASYNC`, `PERF`, `UP`).
 
 ### 📚 Documentation
 - `README.md` / `README.fr.md`: minimum Home Assistant version, the new sensors, and new sections *How Data Is Updated*, *Use Cases*, *Automation Examples*, *Known Limitations* and *Removal*.

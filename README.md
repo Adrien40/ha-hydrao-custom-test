@@ -218,6 +218,8 @@ actions:
 
 > ℹ️ Removing the integration does not change anything on the Hydrao itself: its thresholds, colors and soaping time stay as they were. To set them back to their defaults first, use **Reset to factory defaults** in the options (see above).
 
+> ℹ️ The two cumulative sensors (**Total Cumulative Wasted Volume** and **Total Cumulative Comfort Shower Volume**) keep their totals in a file of their own in Home Assistant's `.storage` folder, which is included in Home Assistant backups. Deleting the device deletes that file too: if you add the device again, these totals start from 0.
+
 ---
 
 ### 🐛 Troubleshooting

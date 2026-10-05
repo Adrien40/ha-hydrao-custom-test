@@ -26,6 +26,7 @@ Cette version est consacrée à la précision et à la fiabilité : les durées 
 - **Une température de l'eau hors de 0–100 °C n'est plus utilisée.** Certaines révisions de l'Hydrao encodent peut-être la température autrement, ce qui pouvait afficher des centaines de degrés et compter toute l'eau comme confortable. Le capteur *Température* affiche maintenant *inconnu*, les chiffres confort / froid et la synchro du mode confort ignorent ce relevé, le volume, la durée et le débit continuent de fonctionner, et un seul avertissement dans le journal donne le firmware, le matériel et la trame brute à signaler.
 - Une baisse du compteur de durée de l'appareil qui n'est pas un dépassement du compteur est traitée comme une réinitialisation de l'appareil et ne compte pour rien, au lieu de produire une durée énorme et fausse.
 - Les seuils hors de 0–255 sont refusés avec un avertissement au lieu d'être envoyés à l'appareil ; une valeur vide pour la révision matérielle ne provoque plus d'erreur ; des seuils ou couleurs enregistrés de façon incomplète n'empêchent plus l'intégration de se charger ; une annonce Bluetooth ancienne en cache n'est plus prise pour une annonce récente au démarrage.
+- **Les totaux cumulés ne se perdent plus en cas de plantage.** Le *Volume Perdu Cumulé* et le *Volume Douche Confort Cumulé* sont désormais enregistrés dans un fichier à part, quelques secondes après chaque changement, au lieu de dépendre de la sauvegarde de l'état des entités par Home Assistant (toutes les 15 minutes), et ne dépendent plus de l'état des capteurs. Les totaux de la version 1.0.0 sont repris automatiquement au premier démarrage ; supprimer l'appareil supprime aussi le fichier.
 
 ### 🧰 Maintenance
 - Toutes les entités partagent maintenant une classe de base commune (`HydraoEntity`) : noms traduits, ID unique construit à partir de l'adresse Bluetooth, appareil. **Les ID d'entités et les ID uniques sont inchangés.**
@@ -38,6 +39,7 @@ Cette version est consacrée à la précision et à la fiabilité : les durées 
 - CI : workflow pytest + couverture (95 % minimum), workflow *Typing*, et un workflow de publication qui reprend les notes de ce journal (`scripts/release_notes.py`). `.coveragerc` mesure uniquement l'intégration, avec les branches.
 - Le manifest déclare l'échelle de qualité `platinum` (auto-évaluée dans `quality_scale.yaml`, hassfest ne la valide pas pour les intégrations personnalisées), avec des tests qui la gardent cohérente avec le code.
 - Le capteur **Signal Bluetooth** (RSSI) ne met à jour son état qu'une fois par seconde au plus, et seulement si la valeur change.
+- `manifest.json` ne déclare plus `bleak` ni `bleak-retry-connector` comme dépendances : ils sont fournis par l'intégration Bluetooth de Home Assistant, dont celle-ci dépend. Un `ruff.toml` active des règles de lint plus strictes (familles qui trouvent des bugs, comme `B`, `ASYNC`, `PERF`, `UP`).
 
 ### 📚 Documentation
 - `README.md` / `README.fr.md` : version minimale de Home Assistant, les nouveaux capteurs, et les nouvelles sections *Mise à jour des données*, *Cas d'usage*, *Exemples d'automatisations*, *Limitations connues* et *Suppression de l'intégration*.

@@ -239,6 +239,40 @@ async def test_unreadable_lifetime_total_is_not_restored(coordinator, key, attri
     assert getattr(coordinator, attribute) == 0.0
 
 
+@pytest.mark.parametrize(
+    ("key", "attribute"),
+    [
+        ("wasted_volume_total", "lifetime_wasted_volume_total"),
+        ("shower_volume_comfort_total", "lifetime_shower_volume_comfort_total"),
+    ],
+)
+async def test_restored_total_is_ignored_once_the_totals_have_their_own_file(
+    coordinator, key, attribute
+):
+    """After the first start with the saved file, the sensors' restored state
+    is no longer the source of the totals."""
+    setattr(coordinator, attribute, 300.0)
+    coordinator.totals_loaded_from_store = True
+    sensor = make_sensor(coordinator, key)
+    sensor.async_get_last_sensor_data = AsyncMock(return_value=stored(250.0))
+
+    await sensor.async_added_to_hass()
+
+    assert getattr(coordinator, attribute) == 300.0
+    # it is still kept as the display fallback
+    assert sensor._restored_value == 250.0
+
+
+async def test_adopting_a_restored_total_schedules_a_save(coordinator):
+    sensor = make_sensor(coordinator, "wasted_volume_total")
+    sensor.async_get_last_sensor_data = AsyncMock(return_value=stored(250.0))
+
+    with patch.object(coordinator._store, "async_delay_save") as delay_save:
+        await sensor.async_added_to_hass()
+
+    delay_save.assert_called_once()
+
+
 async def test_the_flow_rate_is_never_restored(coordinator):
     sensor = make_sensor(coordinator, "flow_rate")
     sensor.async_get_last_sensor_data = AsyncMock(return_value=stored(9.0))

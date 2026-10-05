@@ -22,6 +22,7 @@ from homeassistant.components.bluetooth import (
 )
 from homeassistant.const import CONF_ADDRESS
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.device_registry import (
     CONNECTION_BLUETOOTH,
     DeviceInfo,
@@ -29,6 +30,7 @@ from homeassistant.helpers.device_registry import (
 from homeassistant.helpers.device_registry import (
     async_get as async_get_device_registry,
 )
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
@@ -60,6 +62,8 @@ from .const import (
     MAX_WATER_TEMP,
     MIN_THRESHOLD_VALUE,
     MIN_WATER_TEMP,
+    STORAGE_SAVE_DELAY,
+    STORAGE_VERSION,
     HydraoConfigEntry,
 )
 from .util import (
@@ -67,6 +71,7 @@ from .util import (
     comfort_fraction,
     duration_ticks_delta,
     is_plausible_water_temp,
+    storage_key,
     thresholds_fit_in_byte,
     thresholds_strictly_increasing,
 )
@@ -225,6 +230,17 @@ class HydraoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         self.lifetime_wasted_volume_total = 0.0
         self.lifetime_shower_volume_comfort_total = 0.0
+        # The totals live in their own file. `totals_loaded_from_store` tells
+        # the total sensors whether it already holds them: when it does, the
+        # value those sensors restore from their last state is ignored. When it
+        # does not (first start after an upgrade from 1.0.0, which kept the
+        # totals only in the sensors' state), that restored value is adopted
+        # once and written to the file: the migration.
+        self._store: Store[dict[str, float]] = Store(
+            hass, STORAGE_VERSION, storage_key(entry.entry_id)
+        )
+        self.totals_loaded_from_store = False
+        self._totals_save_scheduled = False
 
         self._last_shower_raw = 0.0
         self._last_duration_ticks = 0
@@ -1011,6 +1027,9 @@ class HydraoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.lifetime_shower_volume_comfort_total += comfort_vol
             self.session_shower_duration_comfort += comfort_dur
 
+            if cold_vol > 0.0 or comfort_vol > 0.0:
+                self._async_schedule_totals_save()
+
             # Comfort is reached on the first reading at or above the
             # threshold. This is deliberately NOT tested through
             # `comfort_share > 0`: the probe resolves 0.5 C and the threshold
@@ -1232,8 +1251,78 @@ class HydraoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._awaiting_manual_reset_confirmation = True
         self._reset_session_state(preserve_wasted=True)
 
+    async def async_load_totals(self) -> None:
+        """Load the lifetime totals saved by a previous run, if there are any.
+
+        Without a saved file the totals are left untouched: see the comment on
+        `totals_loaded_from_store` for how they are then migrated.
+        """
+        try:
+            stored = await self._store.async_load()
+        except HomeAssistantError as err:
+            _LOGGER.warning(
+                "Could not read the saved totals, using the last known values "
+                "of the sensors instead: %s",
+                err,
+            )
+            return
+
+        if not stored:
+            return
+
+        try:
+            wasted = float(stored["wasted_volume_total"])
+            comfort = float(stored["shower_volume_comfort_total"])
+        except (KeyError, TypeError, ValueError):
+            _LOGGER.warning("Ignoring unreadable saved totals: %r", stored)
+            return
+
+        self.lifetime_wasted_volume_total = wasted
+        self.lifetime_shower_volume_comfort_total = comfort
+        self.totals_loaded_from_store = True
+
+        # Publish them right away: the total sensors then show the saved
+        # values even before the first Bluetooth reading, whatever state the
+        # entities were restored to.
+        self.last_valid_data = {
+            **self.last_valid_data,
+            "wasted_volume_total": wasted,
+            "shower_volume_comfort_total": comfort,
+        }
+        self.async_set_updated_data(self.last_valid_data)
+
+    def _totals_snapshot(self) -> dict[str, float]:
+        """The data to save. Called by the Store when it actually writes."""
+        self._totals_save_scheduled = False
+        return {
+            "wasted_volume_total": self.lifetime_wasted_volume_total,
+            "shower_volume_comfort_total": self.lifetime_shower_volume_comfort_total,
+        }
+
+    @callback
+    def _async_schedule_totals_save(self) -> None:
+        """Have the totals written soon, at most once every STORAGE_SAVE_DELAY.
+
+        Once a save is pending, further changes simply ride on it: the data is
+        read when the write happens. Calling the Store on every reading instead
+        would keep postponing the write (its delay restarts at each call), so
+        nothing would be written until the shower is over.
+        """
+        if self._totals_save_scheduled:
+            return
+        self._totals_save_scheduled = True
+        self._store.async_delay_save(self._totals_snapshot, STORAGE_SAVE_DELAY)
+
+    async def async_save_totals(self) -> None:
+        """Write the totals now, if a save is pending (the entry unloads)."""
+        if not self._totals_save_scheduled:
+            return
+        await self._store.async_save(self._totals_snapshot())
+
     def restore_wasted_volume_total(self, value: float) -> None:
         self.lifetime_wasted_volume_total = value
+        self._async_schedule_totals_save()
 
     def restore_shower_volume_comfort_total(self, value: float) -> None:
         self.lifetime_shower_volume_comfort_total = value
+        self._async_schedule_totals_save()

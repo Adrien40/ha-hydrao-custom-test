@@ -58,6 +58,12 @@ MAX_WATER_TEMP = 100.0
 MIN_THRESHOLD_VALUE = 0
 MAX_THRESHOLD_VALUE = 255
 
+# The lifetime totals are kept in their own file (Home Assistant's `Store`),
+# so they do not depend on the state of the entities that display them.
+STORAGE_VERSION = 1
+# While showers run, the totals are written to disk at most this often (s).
+STORAGE_SAVE_DELAY = 10
+
 ISSUE_TRACKER_URL = "https://github.com/Adrien40/ha-hydrao-custom/issues"
 
 MAX_NEW_SHOWER_ATTEMPTS = 2

@@ -218,6 +218,8 @@ actions:
 
 > ℹ️ La suppression de l'intégration ne modifie rien sur le Hydrao lui-même : ses seuils, ses couleurs et sa durée de savonnage restent tels quels. Pour les remettre d'abord aux valeurs d'usine, utilisez **Réinitialiser aux valeurs d'usine** dans les options (voir plus haut).
 
+> ℹ️ Les deux capteurs cumulés (**Volume Perdu Cumulé** et **Volume Douche Confort Cumulé**) conservent leurs totaux dans un fichier à eux, dans le dossier `.storage` de Home Assistant, inclus dans les sauvegardes de Home Assistant. Supprimer l'appareil supprime aussi ce fichier : si vous ajoutez à nouveau l'appareil, ces totaux repartent de 0.
+
 ---
 
 ### 🐛 Dépannage

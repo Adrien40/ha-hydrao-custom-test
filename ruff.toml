@@ -1,0 +1,17 @@
+# Ruff configuration.
+#
+# On top of ruff's defaults (E4, E7, E9, F), these rule families catch real
+# bugs (B, ASYNC, PERF) and keep the code modern and tidy (UP, C4, PIE, I, W,
+# RUF). Style-only opinions (the SIM family) are deliberately left out.
+#
+# The target stays below 3.14 on purpose: for 3.14 the formatter would drop the
+# parentheses of `except (A, B):`, which reads worse and changes many lines.
+target-version = "py313"
+
+[lint]
+select = ["E", "F", "W", "I", "B", "UP", "C4", "PIE", "ASYNC", "PERF", "RUF"]
+ignore = [
+    "E501",   # line length is the formatter's job
+    "RUF001", # the translation scripts legitimately hold non-Latin letters
+    "RUF005", # `[*a, x]` and `a + [x]` are equally fine
+]
