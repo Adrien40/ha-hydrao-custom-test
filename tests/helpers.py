@@ -5,6 +5,8 @@
 
 from typing import Self
 
+from bleak.exc import BleakError
+
 
 def u16le(value: int) -> tuple[int, int]:
     """Split a 16-bit value into (low_byte, high_byte), little-endian."""
@@ -43,6 +45,15 @@ class FakeBleClient:
 
     `connected_checks` is how many times the integration may ask
     `is_connected` before the link "drops", which is what ends the read loop.
+
+    `establish_connection` hands back a client that is *already connected*:
+    entering it as a context manager would call `connect()` a second time,
+    which stock bleak refuses (Home Assistant's own wrapper merely ignores it,
+    which is not something to rely on). The fake is as strict as the stricter
+    of the two, so code that works with it works with both.
+
+    `disconnect_calls` counts the calls to `disconnect()`, and
+    `disconnect_error` is raised by it when set.
     """
 
     def __init__(
@@ -50,12 +61,15 @@ class FakeBleClient:
         reads: dict[str, object] | None = None,
         connected_checks: int = 1,
         write_errors: dict[str, Exception] | None = None,
+        disconnect_error: Exception | None = None,
     ) -> None:
         self.reads: dict[str, object] = dict(reads or {})
         self.write_errors: dict[str, Exception] = dict(write_errors or {})
         self.writes: list[tuple[str, bytes]] = []
         self.read_log: list[str] = []
         self._checks_left = connected_checks
+        self.disconnect_calls = 0
+        self.disconnect_error = disconnect_error
 
     @property
     def is_connected(self) -> bool:
@@ -65,14 +79,14 @@ class FakeBleClient:
         return True
 
     async def __aenter__(self) -> Self:
-        return self
+        raise BleakError("Client is already connected")
 
-    async def __aexit__(self, *exc_info: object) -> bool:
-        return False
+    async def disconnect(self) -> None:
+        self.disconnect_calls += 1
+        if self.disconnect_error is not None:
+            raise self.disconnect_error
 
     async def read_gatt_char(self, uuid: str) -> bytearray:
-        from bleak.exc import BleakError
-
         self.read_log.append(uuid)
         value = self.reads.get(uuid)
         if isinstance(value, list):

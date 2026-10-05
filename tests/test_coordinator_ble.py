@@ -475,6 +475,188 @@ async def test_failing_config_write_is_retried_then_given_up_for_the_session(
 
 
 # ---------------------------------------------------------------------------
+# Closing the connection
+# ---------------------------------------------------------------------------
+
+
+async def test_the_connection_is_closed_at_the_end_of_a_cycle(
+    hass, mock_entry, coordinator, ble, fast_sleep
+):
+    with_identity(hass, mock_entry)
+    client = FakeBleClient(live_reads())
+    ble.connect(client)
+
+    await coordinator._connect_and_read_stream()
+
+    assert client.disconnect_calls == 1
+    ble.clear.assert_called()
+
+
+async def test_the_connection_is_closed_after_the_new_shower_command(
+    hass, mock_entry, coordinator, ble, fast_sleep
+):
+    with_identity(hass, mock_entry)
+    coordinator.pending_new_shower = True
+    coordinator._new_shower_requested_at = time.monotonic()
+    client = FakeBleClient(live_reads(), connected_checks=5)
+    ble.connect(client)
+
+    await coordinator._connect_and_read_stream()
+
+    assert coordinator._new_shower_write_sent is True
+    assert client.disconnect_calls == 1
+
+
+async def test_the_connection_is_closed_when_processing_fails(
+    hass, mock_entry, coordinator, ble, fast_sleep
+):
+    with_identity(hass, mock_entry)
+    client = FakeBleClient(live_reads())
+    ble.connect(client)
+
+    with (
+        patch.object(
+            coordinator, "_process_live_data", side_effect=RuntimeError("boom")
+        ),
+        pytest.raises(RuntimeError, match="boom"),
+    ):
+        await coordinator._connect_and_read_stream()
+
+    assert client.disconnect_calls == 1
+    ble.clear.assert_called()
+
+
+async def test_the_connection_is_closed_when_the_task_is_cancelled(
+    hass, mock_entry, coordinator, ble, fast_sleep
+):
+    """The entry unloading cancels the background task mid-connection."""
+    with_identity(hass, mock_entry)
+    client = FakeBleClient(live_reads())
+    ble.connect(client)
+
+    with (
+        patch.object(
+            coordinator, "_process_live_data", side_effect=asyncio.CancelledError
+        ),
+        pytest.raises(asyncio.CancelledError),
+    ):
+        await coordinator._connect_and_read_stream()
+
+    assert client.disconnect_calls == 1
+
+
+async def test_a_failing_disconnect_is_logged_and_does_not_fail_the_cycle(
+    hass, mock_entry, coordinator, ble, fast_sleep, caplog
+):
+    """The link is often already gone when the shower stops: failing to close
+    it must not turn the end of a shower into a "connection error"."""
+    with_identity(hass, mock_entry)
+    client = FakeBleClient(live_reads(), disconnect_error=BleakError("link gone"))
+    ble.connect(client)
+
+    with caplog.at_level(logging.DEBUG):
+        await coordinator._connect_and_read_stream()
+
+    assert client.disconnect_calls == 1
+    assert "Error while closing the connection" in caplog.text
+    assert coordinator.data["bluetooth_status"] == BT_STATUS_SUCCESS
+    ble.clear.assert_called()
+
+
+async def test_a_failing_disconnect_does_not_hide_the_original_error(
+    hass, mock_entry, coordinator, ble, fast_sleep
+):
+    with_identity(hass, mock_entry)
+    client = FakeBleClient(live_reads(), disconnect_error=BleakError("link gone"))
+    ble.connect(client)
+
+    with (
+        patch.object(
+            coordinator, "_process_live_data", side_effect=RuntimeError("boom")
+        ),
+        pytest.raises(RuntimeError, match="boom"),
+    ):
+        await coordinator._connect_and_read_stream()
+
+
+async def test_closing_the_connection_is_logged(
+    hass, mock_entry, coordinator, ble, fast_sleep, caplog
+):
+    """Lets a real-device test see, in the debug log, that each connection
+    was closed."""
+    with_identity(hass, mock_entry)
+    ble.connect(FakeBleClient(live_reads()))
+
+    with caplog.at_level(logging.DEBUG):
+        await coordinator._connect_and_read_stream()
+
+    assert "Bluetooth connection closed" in caplog.text
+
+
+def make_client_class(reads, *, refuse_second_connect):
+    """A client *class*, as `establish_connection` instantiates it.
+
+    It behaves like stock bleak (`refuse_second_connect`: a second `connect()`
+    raises) or like Home Assistant's wrapper (a second `connect()` is ignored).
+    """
+    created = []
+
+    class Client(FakeBleClient):
+        def __init__(self, device, **kwargs):
+            super().__init__(reads)
+            self.connected = False
+            created.append(self)
+
+        async def connect(self, **kwargs):
+            if self.connected and refuse_second_connect:
+                raise BleakError("Client is already connected")
+            self.connected = True
+
+        async def __aenter__(self):
+            await self.connect()
+            return self
+
+        async def __aexit__(self, *exc_info):
+            await self.disconnect()
+
+        async def disconnect(self):
+            await super().disconnect()
+            self.connected = False
+
+    return Client, created
+
+
+@pytest.mark.parametrize(
+    "refuse_second_connect", [True, False], ids=["stock-bleak", "ha-wrapper"]
+)
+async def test_a_cycle_works_with_the_real_establish_connection(
+    hass, mock_entry, coordinator, fast_sleep, refuse_second_connect
+):
+    """Nothing is stubbed between the coordinator and the client class: the
+    real `establish_connection` connects it, and the coordinator must then
+    use it as an already-connected client and close it."""
+    from bleak.backends.device import BLEDevice
+
+    with_identity(hass, mock_entry)
+    client_class, created = make_client_class(
+        live_reads(), refuse_second_connect=refuse_second_connect
+    )
+    device = BLEDevice("AA:BB:CC:DD:EE:FF", "HYDRAO", {})
+
+    with (
+        patch(f"{MOD}.async_ble_device_from_address", return_value=device),
+        patch(f"{MOD}.async_clear_advertisement_history"),
+        patch(f"{MOD}.BleakClient", client_class),
+    ):
+        await coordinator._connect_and_read_stream()
+
+    (client,) = created
+    assert coordinator.data["total_volume"] == 500.0  # the cycle really ran
+    assert client.disconnect_calls == 1
+    assert client.connected is False
+
+
+# ---------------------------------------------------------------------------
 # "New shower" command during a connection
 # ---------------------------------------------------------------------------
 

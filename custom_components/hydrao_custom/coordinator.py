@@ -775,152 +775,149 @@ class HydraoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self.set_bt_status(BT_STATUS_SUCCESS)
             self._new_shower_write_sent = False
 
-            async with client:
-                new_data = dict(self.config_entry.data)
-                entry_needs_update = False
+            new_data = dict(self.config_entry.data)
+            entry_needs_update = False
 
-                if new_data.get("firmware", "unknown") == "unknown":
-                    try:
-                        fw = await client.read_gatt_char(CHAR_FIRMWARE)
-                        new_data["firmware"] = fw.decode(errors="ignore").strip("\x00")
+            if new_data.get("firmware", "unknown") == "unknown":
+                try:
+                    fw = await client.read_gatt_char(CHAR_FIRMWARE)
+                    new_data["firmware"] = fw.decode(errors="ignore").strip("\x00")
+                    entry_needs_update = True
+                except _BLE_TRANSIENT_ERRORS as e:
+                    _LOGGER.warning("Could not read Firmware: %s", e)
+
+            if new_data.get("hardware", "unknown") == "unknown":
+                try:
+                    hw = await client.read_gatt_char(CHAR_HARDWARE)
+                    if hw:
+                        new_data["hardware"] = str(hw[0])
                         entry_needs_update = True
-                    except _BLE_TRANSIENT_ERRORS as e:
-                        _LOGGER.warning("Could not read Firmware: %s", e)
+                    else:
+                        _LOGGER.warning("Could not read Hardware: empty value")
+                except _BLE_TRANSIENT_ERRORS as e:
+                    _LOGGER.warning("Could not read Hardware: %s", e)
 
-                if new_data.get("hardware", "unknown") == "unknown":
-                    try:
-                        hw = await client.read_gatt_char(CHAR_HARDWARE)
-                        if hw:
-                            new_data["hardware"] = str(hw[0])
-                            entry_needs_update = True
-                        else:
-                            _LOGGER.warning("Could not read Hardware: empty value")
-                    except _BLE_TRANSIENT_ERRORS as e:
-                        _LOGGER.warning("Could not read Hardware: %s", e)
+            if new_data.get("device_id", "unknown") == "unknown":
+                try:
+                    uid = await client.read_gatt_char(CHAR_UNIQUE_ID)
+                    new_data["device_id"] = uid.hex()
+                    entry_needs_update = True
+                except _BLE_TRANSIENT_ERRORS as e:
+                    _LOGGER.warning("Could not read Unique ID: %s", e)
 
-                if new_data.get("device_id", "unknown") == "unknown":
-                    try:
-                        uid = await client.read_gatt_char(CHAR_UNIQUE_ID)
-                        new_data["device_id"] = uid.hex()
-                        entry_needs_update = True
-                    except _BLE_TRANSIENT_ERRORS as e:
-                        _LOGGER.warning("Could not read Unique ID: %s", e)
+            if entry_needs_update:
+                self.hass.config_entries.async_update_entry(
+                    self.config_entry, data=new_data
+                )
 
-                if entry_needs_update:
-                    self.hass.config_entries.async_update_entry(
-                        self.config_entry, data=new_data
-                    )
+                dev_reg = async_get_device_registry(self.hass)
+                dev_reg.async_get_or_create(
+                    config_entry_id=self.config_entry.entry_id,
+                    identifiers={(DOMAIN, self.address)},
+                    connections={(CONNECTION_BLUETOOTH, self.address)},
+                    manufacturer="Hydrao",
+                    name=self.config_entry.title,
+                    sw_version=new_data.get("firmware", "unknown"),
+                    hw_version=new_data.get("hardware", "unknown"),
+                    serial_number=new_data.get("device_id", "unknown"),
+                )
 
-                    dev_reg = async_get_device_registry(self.hass)
-                    dev_reg.async_get_or_create(
-                        config_entry_id=self.config_entry.entry_id,
-                        identifiers={(DOMAIN, self.address)},
-                        connections={(CONNECTION_BLUETOOTH, self.address)},
-                        manufacturer="Hydrao",
-                        name=self.config_entry.title,
-                        sw_version=new_data.get("firmware", "unknown"),
-                        hw_version=new_data.get("hardware", "unknown"),
-                        serial_number=new_data.get("device_id", "unknown"),
-                    )
+            self.static_data["firmware"] = new_data.get("firmware", "unknown")
+            self.static_data["hardware"] = new_data.get("hardware", "unknown")
+            self.static_data["device_id"] = new_data.get("device_id", "unknown")
 
-                self.static_data["firmware"] = new_data.get("firmware", "unknown")
-                self.static_data["hardware"] = new_data.get("hardware", "unknown")
-                self.static_data["device_id"] = new_data.get("device_id", "unknown")
+            inline_write_attempts = 0
+            config_write_failed_this_session = False
+            device_config_read = False
 
-                inline_write_attempts = 0
-                config_write_failed_this_session = False
-                device_config_read = False
+            while client.is_connected:
+                try:
+                    vol_data = await client.read_gatt_char(CHAR_VOLUME_AND_DURATION)
+                    dur_data = await client.read_gatt_char(CHAR_DURATION_RAW)
+                    temp_data = await client.read_gatt_char(CHAR_TEMPERATURE_RAW)
+                except _BLE_TRANSIENT_ERRORS as e:
+                    _LOGGER.debug("Skipping this read cycle: %s", e)
+                    await asyncio.sleep(1)
+                    continue
 
-                while client.is_connected:
-                    try:
-                        vol_data = await client.read_gatt_char(CHAR_VOLUME_AND_DURATION)
-                        dur_data = await client.read_gatt_char(CHAR_DURATION_RAW)
-                        temp_data = await client.read_gatt_char(CHAR_TEMPERATURE_RAW)
-                    except _BLE_TRANSIENT_ERRORS as e:
-                        _LOGGER.debug("Skipping this read cycle: %s", e)
-                        await asyncio.sleep(1)
-                        continue
+                try:
+                    flow_raw_data = await client.read_gatt_char(CHAR_FLOW_RAW)
+                except _BLE_TRANSIENT_ERRORS:
+                    flow_raw_data = None
 
-                    try:
-                        flow_raw_data = await client.read_gatt_char(CHAR_FLOW_RAW)
-                    except _BLE_TRANSIENT_ERRORS:
-                        flow_raw_data = None
+                self._process_live_data(vol_data, dur_data, temp_data, flow_raw_data)
 
-                    self._process_live_data(
-                        vol_data, dur_data, temp_data, flow_raw_data
-                    )
+                if not device_config_read:
+                    # The device settings are read once the first live
+                    # reading has been taken, not before it: the shower is
+                    # already running, and each read before that first
+                    # reading delays it, which can make the cold phase go
+                    # unseen (see `time_to_comfort`).
+                    device_config_read = True
+                    await self._async_read_thresholds(client)
+                    await self._async_read_soaping_duration(client)
+                    self._queue_pending_writes_from_options(self.config_entry.options)
+                    # This read follows a live reading, which is exactly
+                    # what `_thresholds_need_reread` asks for.
+                    self._thresholds_need_reread = False
+                    self._sync_device_config_to_ha_options()
 
-                    if not device_config_read:
-                        # The device settings are read once the first live
-                        # reading has been taken, not before it: the shower is
-                        # already running, and each read before that first
-                        # reading delays it, which can make the cold phase go
-                        # unseen (see `time_to_comfort`).
-                        device_config_read = True
-                        await self._async_read_thresholds(client)
-                        await self._async_read_soaping_duration(client)
-                        self._queue_pending_writes_from_options(
-                            self.config_entry.options
-                        )
-                        # This read follows a live reading, which is exactly
-                        # what `_thresholds_need_reread` asks for.
-                        self._thresholds_need_reread = False
-                        self._sync_device_config_to_ha_options()
+                if self._thresholds_need_reread:
+                    self._thresholds_need_reread = False
+                    await self._async_read_thresholds(client)
+                    self._sync_device_config_to_ha_options()
 
-                    if self._thresholds_need_reread:
-                        self._thresholds_need_reread = False
-                        await self._async_read_thresholds(client)
-                        self._sync_device_config_to_ha_options()
+                if self.pending_new_shower:
+                    await self._handle_pending_new_shower(client)
 
-                    if self.pending_new_shower:
-                        await self._handle_pending_new_shower(client)
+                    # If the reboot command was actually sent, break out of the loop
+                    # right away. This closes the connection on HA's side instantly,
+                    # instead of waiting through the OS's ~10s timeout.
+                    if self._new_shower_write_sent:
+                        break
 
-                        # If the reboot command was actually sent, break out of the loop
-                        # right away. This closes the connection on HA's side instantly,
-                        # instead of waiting through the OS's ~10s timeout.
-                        if self._new_shower_write_sent:
-                            break
+                    await asyncio.sleep(1)
+                    continue
 
-                        await asyncio.sleep(1)
-                        continue
+                if not config_write_failed_this_session and (
+                    self.pending_thresholds
+                    or self.pending_colors
+                    or self.pending_soaping_duration is not None
+                ):
+                    success = await self._apply_pending_config_write(client)
 
-                    if not config_write_failed_this_session and (
-                        self.pending_thresholds
-                        or self.pending_colors
-                        or self.pending_soaping_duration is not None
-                    ):
-                        success = await self._apply_pending_config_write(client)
-
-                        if success:
-                            inline_write_attempts = 0
-                            continue
-
-                        inline_write_attempts += 1
-                        if inline_write_attempts < 2:
-                            await asyncio.sleep(1)
-                            continue
-
-                        _LOGGER.error(
-                            "Giving up on pending config write after %d failed "
-                            "attempts this session; will retry automatically "
-                            "the next time the device connects.",
-                            inline_write_attempts,
-                        )
-                        config_write_failed_this_session = True
+                    if success:
                         inline_write_attempts = 0
-                        self.set_bt_status(BT_STATUS_SYNC_FAILED)
+                        continue
 
-                    if (
-                        not config_write_failed_this_session
-                        and not self.pending_thresholds
-                        and not self.pending_colors
-                        and self.pending_soaping_duration is None
-                    ):
-                        self.set_bt_status(BT_STATUS_SUCCESS)
+                    inline_write_attempts += 1
+                    if inline_write_attempts < 2:
+                        await asyncio.sleep(1)
+                        continue
 
-                    await asyncio.sleep(0.3)
+                    _LOGGER.error(
+                        "Giving up on pending config write after %d failed "
+                        "attempts this session; will retry automatically "
+                        "the next time the device connects.",
+                        inline_write_attempts,
+                    )
+                    config_write_failed_this_session = True
+                    inline_write_attempts = 0
+                    self.set_bt_status(BT_STATUS_SYNC_FAILED)
+
+                if (
+                    not config_write_failed_this_session
+                    and not self.pending_thresholds
+                    and not self.pending_colors
+                    and self.pending_soaping_duration is None
+                ):
+                    self.set_bt_status(BT_STATUS_SUCCESS)
+
+                await asyncio.sleep(0.3)
 
         finally:
+            await self._async_close_connection(client)
+
             # The Hydrao advertisement payload is completely static
             # (empty manufacturer_data/service_data/service_uuids), so
             # Home Assistant's Bluetooth manager de-duplicates repeat
@@ -931,6 +928,25 @@ class HydraoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # _async_on_advertisement() and refreshes
             # _last_advertisement_time.
             async_clear_advertisement_history(self.hass, self.address)
+
+    async def _async_close_connection(self, client: BleakClient) -> None:
+        """Close the connection, whatever ended the cycle.
+
+        `establish_connection` returns a client that is already connected, so
+        it is disconnected here. Entering it as a context manager would call
+        `connect()` a second time: stock bleak refuses that, and Home
+        Assistant's wrapper only ignores it, which is not something to rely on.
+
+        A failure to disconnect is only logged. The link is often already gone
+        when the shower stops, and that must neither turn the end of a shower
+        into a connection error nor hide the exception that ended the cycle.
+        """
+        try:
+            await client.disconnect()
+        except _BLE_TRANSIENT_ERRORS as err:
+            _LOGGER.debug("Error while closing the connection: %s", err)
+        else:
+            _LOGGER.debug("Bluetooth connection closed")
 
     def _process_live_data(
         self,
