@@ -998,7 +998,20 @@ class HydraoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.lifetime_shower_volume_comfort_total += comfort_vol
             self.session_shower_duration_comfort += comfort_dur
 
-            if comfort_share > 0.0 and not self._session_comfort_seen:
+            # Comfort is reached on the first reading at or above the
+            # threshold. This is deliberately NOT tested through
+            # `comfort_share > 0`: the probe resolves 0.5 C and the threshold
+            # is set in 0.5 C steps, so a reading landing exactly on the
+            # threshold is common during a gradual warm-up. Interpolating
+            # between the previous reading and that one gives a comfort share
+            # of exactly 0, which would skip this block; the next reading
+            # would then see a previous temperature that is no longer below
+            # the threshold, and the time to comfort would stay unknown for
+            # the whole session.
+            if (
+                temperature >= self.min_temp_threshold
+                and not self._session_comfort_seen
+            ):
                 self._session_comfort_seen = True
                 # Only report a time-to-comfort when we actually watched the
                 # water go from cold to comfortable. If the session's very
