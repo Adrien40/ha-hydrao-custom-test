@@ -168,27 +168,29 @@ L'intégration ne **fait pas de polling** : elle écoute passivement les annonce
 ---
 
 ### 🤖 Exemples d'automatisations
-Remplacez les identifiants d'entités ci-dessous par les vôtres (ils commencent par le nom de votre appareil, par exemple `sensor.hydrao_eeff_...`).
+Remplacez les identifiants d'entités ci-dessous par les vôtres (ils commencent par le nom de votre appareil, par exemple `sensor.hydrao_aloe_...`).
 
 **Être prévenu quand une douche a gaspillé trop d'eau froide**
 ```yaml
-automation:
-  - alias: "Douche : bilan de l'eau gaspillée"
-    triggers:
-      - trigger: state
-        entity_id: sensor.hydrao_eeff_etat_bluetooth
-        from: "success"
-        to: "waiting"
-    conditions:
-      - condition: numeric_state
-        entity_id: sensor.hydrao_eeff_volume_perdu_eau_froide
-        above: 5
-    actions:
-      - action: notify.notify
-        data:
-          message: >-
-            {{ states('sensor.hydrao_eeff_volume_perdu_eau_froide') }} L d'eau
-            froide gaspillés pendant cette douche.
+alias: Douche - Bilan d'eau froide perdu
+triggers:
+  - trigger: state
+    entity_id:
+      - sensor.hydrao_aloe_etat_bluetooth
+    from:
+      - success
+    to:
+      - waiting
+conditions:
+  - condition: numeric_state
+    entity_id: sensor.hydrao_aloe_volume_perdu_eau_froide
+    above: 5
+actions:
+  - action: notify.notify
+    data:
+      message: >-
+        {{ states('sensor.hydrao_aloe_volume_perdu_eau_froide') }} L d'eau
+        froide perdu durant cette douche.
 ```
 
 **Terminer la douche depuis une automatisation**
@@ -196,7 +198,7 @@ automation:
 actions:
   - action: button.press
     target:
-      entity_id: button.hydrao_eeff_douche_terminee
+      entity_id: button.hydrao_aloe_douche_terminee
 ```
 
 ---
