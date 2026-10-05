@@ -825,14 +825,9 @@ class HydraoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self.static_data["hardware"] = new_data.get("hardware", "unknown")
                 self.static_data["device_id"] = new_data.get("device_id", "unknown")
 
-                await self._async_read_thresholds(client)
-                await self._async_read_soaping_duration(client)
-
-                self._queue_pending_writes_from_options(self.config_entry.options)
-                self._sync_device_config_to_ha_options()
-
                 inline_write_attempts = 0
                 config_write_failed_this_session = False
+                device_config_read = False
 
                 while client.is_connected:
                     try:
@@ -852,6 +847,23 @@ class HydraoDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     self._process_live_data(
                         vol_data, dur_data, temp_data, flow_raw_data
                     )
+
+                    if not device_config_read:
+                        # The device settings are read once the first live
+                        # reading has been taken, not before it: the shower is
+                        # already running, and each read before that first
+                        # reading delays it, which can make the cold phase go
+                        # unseen (see `time_to_comfort`).
+                        device_config_read = True
+                        await self._async_read_thresholds(client)
+                        await self._async_read_soaping_duration(client)
+                        self._queue_pending_writes_from_options(
+                            self.config_entry.options
+                        )
+                        # This read follows a live reading, which is exactly
+                        # what `_thresholds_need_reread` asks for.
+                        self._thresholds_need_reread = False
+                        self._sync_device_config_to_ha_options()
 
                     if self._thresholds_need_reread:
                         self._thresholds_need_reread = False

@@ -292,13 +292,86 @@ async def test_failed_read_cycle_is_skipped_and_retried(
     assert 1 in fast_sleep
 
 
-async def test_thresholds_are_read_again_once_water_flows(
+async def test_the_first_live_reading_is_taken_before_the_device_config(
     hass, mock_entry, coordinator, ble, fast_sleep
 ):
+    """Each read before the first live reading delays it, which can make the
+    cold phase of the shower go unseen: the settings come after it."""
+    with_identity(hass, mock_entry)
+    client = FakeBleClient(live_reads())
+    ble.connect(client)
+
+    await coordinator._connect_and_read_stream()
+
+    log = client.read_log
+    first_live = log.index(CHAR_VOLUME_AND_DURATION)
+    assert first_live < log.index(CHAR_CONFIG)
+    assert first_live < log.index(CHAR_SOAPING_DURATION)
+    # nothing but the live characteristics is read before the config
+    assert set(log[: log.index(CHAR_CONFIG)]) <= {
+        CHAR_VOLUME_AND_DURATION,
+        CHAR_DURATION_RAW,
+        CHAR_TEMPERATURE_RAW,
+        CHAR_FLOW_RAW,
+    }
+
+
+async def test_the_device_config_waits_for_a_live_reading_that_succeeded(
+    hass, mock_entry, coordinator, ble, fast_sleep
+):
+    with_identity(hass, mock_entry)
+    reads = live_reads()
+    reads[CHAR_VOLUME_AND_DURATION] = [
+        BleakError("link hiccup"),
+        reads[CHAR_VOLUME_AND_DURATION],
+    ]
+    client = FakeBleClient(reads, connected_checks=2)
+    ble.connect(client)
+
+    await coordinator._connect_and_read_stream()
+
+    log = client.read_log
+    second_attempt = [i for i, c in enumerate(log) if c == CHAR_VOLUME_AND_DURATION][1]
+    assert log.index(CHAR_CONFIG) > second_attempt
+
+
+async def test_thresholds_are_read_once_when_water_already_flows_at_connection(
+    hass, mock_entry, coordinator, ble, fast_sleep
+):
+    """The read that follows the first live reading is also the one that has
+    to happen once water flows: no second read right after it."""
     with_identity(hass, mock_entry)
     client = FakeBleClient(
         live_reads(shower=50, config=[CONFIG_BYTES, OTHER_CONFIG_BYTES])
     )
+    ble.connect(client)
+
+    await coordinator._connect_and_read_stream()
+
+    assert client.read_log.count(CHAR_CONFIG) == 1
+    assert client.read_log.count(CHAR_SOAPING_DURATION) == 1
+    assert coordinator.static_data["thresholds"] == [10, 20, 30, 40]
+
+
+async def test_thresholds_are_read_again_when_water_starts_after_the_connection(
+    hass, mock_entry, coordinator, ble, fast_sleep
+):
+    with_identity(hass, mock_entry)
+    water_off = live_reads(shower=0, ticks=0)
+    water_on = live_reads(shower=50)
+    reads = {
+        **water_on,
+        CHAR_VOLUME_AND_DURATION: [
+            water_off[CHAR_VOLUME_AND_DURATION],
+            water_on[CHAR_VOLUME_AND_DURATION],
+        ],
+        CHAR_DURATION_RAW: [
+            water_off[CHAR_DURATION_RAW],
+            water_on[CHAR_DURATION_RAW],
+        ],
+        CHAR_CONFIG: [CONFIG_BYTES, OTHER_CONFIG_BYTES],
+    }
+    client = FakeBleClient(reads, connected_checks=2)
     ble.connect(client)
 
     await coordinator._connect_and_read_stream()
