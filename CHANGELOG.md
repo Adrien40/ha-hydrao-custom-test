@@ -34,7 +34,7 @@ This release makes the integration more reliable and more accurate: durations co
 - The `bleak` / `bleak-retry-connector` requirements are no longer declared in the manifest (provided by Home Assistant's Bluetooth integration).
 - The manifest declares the `platinum` quality scale (`quality_scale.yaml`), with tests keeping it consistent.
 - Test suite of **over 500 tests**: config/options flow, coordinator, entities, diagnostics, translations, totals storage, documentation.
-- CI: *Tests*, *Typing* (mypy) and *Release* workflows, Dependabot, ruff configuration (`ruff.toml`) and `.coveragerc`.
+- CI: *Tests*, *Typing* (mypy) and *Release* workflows, ruff configuration (`ruff.toml`) and `.coveragerc`.
 
 ### 📚 Documentation
 - `README.md` / `README.fr.md`: badges, minimum Home Assistant version, new *How Data Is Updated*, *Use Cases*, *Automation Examples*, *Known Limitations* and *Removal* sections, new sensors and temperature troubleshooting.

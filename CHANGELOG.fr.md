@@ -34,7 +34,7 @@ Cette version rend l'intégration plus fiable et plus précise : durées calcul�
 - Les dépendances `bleak` / `bleak-retry-connector` ne sont plus déclarées dans le manifest (fournies par l'intégration Bluetooth de Home Assistant).
 - Le manifest déclare l'échelle de qualité `platinum` (`quality_scale.yaml`), avec des tests qui la gardent cohérente.
 - Suite de **plus de 500 tests** : config/options flow, coordinateur, entités, diagnostics, traductions, stockage des totaux, documentation.
-- CI : workflows *Tests*, *Typing* (mypy) et *Release*, Dependabot, configuration ruff (`ruff.toml`) et `.coveragerc`.
+- CI : workflows *Tests*, *Typing* (mypy) et *Release*, configuration ruff (`ruff.toml`) et `.coveragerc`.
 
 ### 📚 Documentation
 - `README.md` / `README.fr.md` : badges, version minimale de Home Assistant, sections *Mise à jour des données*, *Cas d'usage*, *Exemples d'automatisations*, *Limites connues* et *Désinstallation*, nouveaux capteurs et dépannage de la température.
