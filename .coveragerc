@@ -1,9 +1,0 @@
-# Coverage is measured on the integration only, lines and branches.
-# The Tests workflow fails below 95% (Silver: test-coverage).
-[run]
-source = custom_components/hydrao_custom
-branch = True
-
-[report]
-show_missing = True
-skip_empty = True
