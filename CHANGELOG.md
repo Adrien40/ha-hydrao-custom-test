@@ -1,51 +1,157 @@
-# Hydrao Custom - Changelog
+# Blue Connect Local - Changelog
+
+## 1.3.0-beta.1
+
+🧪🧪🧪🧪🧪🧪🧪🧪🧪🧪
+
+**Pre-release.** Experimental support for Blueriiot-profile probes. ZODIAC probes keep exactly the same Bluetooth sequence as in 1.2.0.
+
+### ✨ New features
+- **Experimental Blueriiot support**: the profile is detected automatically on each connection, from the GATT services the probe exposes. Temperature, pH, ORP, conductivity, salinity and battery are decoded, and offsets and calibration apply as usual. The probe stores `device_type: blueriiot` (visible in diagnostics).
+- The protocol knowledge (GATT characteristics, 12-byte frame) comes from the work of [@vinzgithub](https://github.com/vinzgithub).
+
+### 🛡️ ZODIAC safety
+- If the probe does not expose the Blueriiot characteristics (or no GATT services at all), the original ZODIAC code path runs unchanged.
+- Nothing is written to the ZODIAC characteristics of a Blueriiot probe, and only 12-byte frames starting with `0x33` are accepted as a measurement.
+
+### ⚠️ Known limits
+- **Not validated by the maintainer on real Blueriiot hardware**: the UUIDs and formulas come from a contributor's tests on two installations.
+- **Active mode only** (access code required).
+- No serial number, model (SKU) or floating status: the device shows as *Blue Connect*.
+- Please report problems with the **diagnostics** file and a debug log (`custom_components.blue_connect_local: debug`).
+
+### 🧰 Maintenance
+- 468 tests (45 new), 100% coverage. Pre-release versions such as `1.3.0-beta.1` are now accepted by the version checks.
+
+## 1.2.0
+
+🐬🐬🐬🐬🐬🐬🐬🐬🐬🐬
+
+This release is all about robustness: Bluetooth retry, shutdown and re-authentication issues are fixed, a **Raw ORP** diagnostic sensor joins the raw pH one, and the test suite grew from 40 to ~400 tests.
+
+### 🚨 Breaking changes
+- **Home Assistant 2026.3.0 or newer** (`hacs.json`), the first release shipped with Python 3.14. Tests pass on 2026.3.0 and 2026.9.4.
+
+### ✨ New features
+- **Raw ORP** diagnostic sensor (mV), next to the existing raw pH: the probe value *before* any
+  offset, to calibrate on a reference solution.
+
+### 🧂 Note on chlorine
+- No chlorine estimate, on purpose: ORP is an oxidising strength, not a concentration, so a chlorine value derived from it would look precise but be wrong. The **CyA** entity and the **treatment type** are kept, but no calculated value depends on them yet.
+
+### 🐛 Bug fixes
+- **Re-authentication and reconfiguration ignored the new access code**: the options (which take priority) and a copy in local storage kept the old one, so the repair prompt came back. The new code is now used, is no longer stored in local storage, and re-authentication validates its format (9 alphanumeric characters).
+- The **Analysis Interval** and **CyA (Stabilizer)** entities kept showing their old value after a change in **Configure**, although the new value was already in use; they now follow the value actually used.
+- Invalid BLE frames were retried forever: the retry counter was reset before decoding, so the "unreachable" state was never reached.
+- Coordinator shutdown: `async_shutdown` now calls the parent implementation and is idempotent, and the first analysis timer (2 s after startup) is cancelled on unload.
+- `validate_calibration` no longer raises on a non-numeric ORP, offset, CyA or interval value.
+- A degenerate pH calibration (points too close together) no longer returns a silently wrong value: the pH falls back to the raw pH with a logged warning.
+- A device seen only by a scanner that cannot connect to it (`connectable=False`) is no longer treated as missing.
+- The **New Analysis** button handles any unexpected error cleanly instead of leaving an unhandled background-task traceback.
+- Dropped notifications (queue full) are now logged at debug level.
+- The BLE signal lost / found events are now logged once per transition at info level (previously not logged), so an outage is visible in the log without being repeated on every retry.
+
+### 🛡️ Hardening
+- **Diagnostics** now also redact the serial number, the Cloud ID and the entry title (built from the BLE name, which may include part of the MAC address), so a downloaded diagnostics file can be attached to a public issue safely. The SKU stays visible for support. The reported options are now the values actually in use (a value changed from an entity used to be missing there).
+- A computed pH outside 0-14 becomes *unknown* instead of being displayed.
+- Langelier index and equilibrium pH reject NaN/inf inputs.
+
+### 🧰 Maintenance
+- Field descriptions (`data_description`) added to the re-authentication, reconfiguration, setup and options forms (MAC address, calibration, synchronization, treatment, CyA), in all 19 languages.
+- The coordinator receives its `config_entry` explicitly; BLE pauses are named constants; a compatibility helper replaces the deprecated `device_registry.async_get_device`, so the code works on both 2026.3.0 and 2026.9.4.
+- Test suite grown from 40 to ~400 tests, with 100 % coverage: simulated Bluetooth, coordinator, config/options flow, migration chain 1.1 → 1.4, entities, translations, property-based tests.
+- CI: pytest + coverage workflow (Python 3.14, 95 % minimum), `mypy --strict` as its own *Typing* workflow, explicit ruff / pytest configuration in `pyproject.toml`, `requirements_test.txt`.
+- Code style (ruff) and Python 3.14 syntax: `TimeoutError`, `except A, B:`.
+- The manifest declares the `platinum` quality scale, with tests keeping it consistent.
+
+### 📚 Documentation
+- `README.md` / `README.fr.md`: minimum Home Assistant version, raw ORP, new *Scheduled Analyses* section, missing entities in the table, and license / CI / quality scale badges.
+- `calibration_help.md` / `calibration_help.fr.md`: proper English version of the guide, language links, and link from the README.
+
+🐬🐬🐬🐬🐬🐬🐬🐬🐬🐬
+
+## 1.1.1
+
+🐬🐬🐬🐬🐬🐬🐬🐬🐬🐬
+
+### ✨ New features
+- **Instant invalid access code detection**: the auth status is read directly from the probe, so *Invalid access code* is reported within seconds instead of after the ~2×60 s timeout (with a 0.5 s confirmation re-read to avoid false positives on high-latency BLE proxies). New `auth_failed` state on the Bluetooth Status sensor.
+- **Blue Connect Silver**: the Conductivity/Salinity entities are automatically disabled (once) when the Silver model is detected, instead of staying enabled and showing *Unknown*.
+- Model detection as early as Bluetooth discovery: conductivity detected during discovery is persisted, so the Conductivity/Salinity entities get the right enabled-by-default state from their creation.
+
+### 🐛 Bug fixes
+- Editing an existing access code in the Options menu (e.g. fixing a typo) now triggers an immediate analysis; before, only going from an empty field to a code did.
+- The legacy `hw_version` is explicitly cleared from the device registry when upgrading from 1.1.0, which removes the redundant "Hardware: WA000100" line from the device page.
+
+### 🧰 Maintenance
+- Device registry: the SKU is now exposed as `model_id` (*Model ID*) instead of `hw_version`; the `sw_version` diagnostic sensor, which reported the device's Cloud ID and not a firmware version, is renamed `cloud_id` (registry migration keeps the entity history).
+- Orphaned *Serial Number* / *Model (SKU)* sensor entities (already folded into the device header in 1.1.0) are cleaned up from the entity registry (config entry migration 2 → 4).
+- English strings harmonised to the singular (*Automatic Analysis*, *Analysis paused*).
+- Removed 3 dead constants and an unused import.
+
+### 🙏 Acknowledgements
+- Thanks to @alexdelprete for his help, suggestions and testing.
+
+🐬🐬🐬🐬🐬🐬🐬🐬🐬🐬
 
 ## 1.1.0
 
-💧💧💧💧💧💧💧💧💧💧
-
-This release makes the integration more reliable and more accurate: durations computed from the device's own counter, cumulative totals kept in a dedicated file, two new diagnostic sensors, and a test suite of over 500 tests.
-
-### 🚨 Breaking changes
-- **Home Assistant 2026.5.0 or newer** (`hacs.json`), as the integration uses a Bluetooth helper first shipped in that release (Python 3.14).
+🐬🐬🐬🐬🐬🐬🐬🐬🐬🐬
 
 ### ✨ New features
-- **Cold Water Shower Duration** diagnostic sensor: time spent below the comfort temperature during the current shower.
-- **Time to Comfort Temperature** diagnostic sensor: time elapsed before the comfort temperature was first reached (unavailable if the water was already warm at connection).
-- Downloadable **diagnostics** (address, name and serial number redacted): raw Bluetooth frames, firmware and coordinator state, to make support easier.
-- Field descriptions (`data_description`) in the setup and options forms, in all 19 languages.
-
-### 🔄 Changes
-- Durations are now computed in seconds from the device counter (1/50 s) and displayed in minutes; values restored from before the update are converted automatically.
-- Comfort time is computed by interpolating the moment the temperature crosses the threshold, instead of counting the whole interval on one side.
-- The **Bluetooth Signal** sensor is disabled by default (enable it to check the range) and limited to one update per second.
-- Per-shower volume sensors switch to `total_increasing` and the flow rate gets its device class. For long-term statistics, use the **Total Cumulative** sensors.
+- Automatic model detection (Blue Connect **Gold** or **Silver**): in active mode from the hardware SKU and in fully passive mode by analysing the BLE frame. The detected model is shown from the setup screen, right at Bluetooth discovery.
+- Conductivity and Salinity entities are disabled by default on Blue Connect Silver.
+- Enriched device info in the device header: detected model, model number (SKU), serial number and Bluetooth MAC address.
 
 ### 🐛 Bug fixes
-- The **cumulative totals** (wasted volume and comfort volume) are now saved in their own `.storage` file: they no longer depend on the state of the entities. Automatic migration from 1.0.0; the file is deleted with the device.
-- An **impossible temperature** (outside 0-100 °C) is ignored (*Unknown* + a single warning in the log) instead of being counted as hot water.
-- The **duration counter wrap-around** (uint16) is handled correctly; any other decrease is treated as a device reset, with no bogus duration.
-- A cached Bluetooth advertisement is no longer mistaken for a recent signal (its own timestamp is used).
-- The soaping time is clamped to 10-600 s before the BLE write, and volume thresholds must fit in one byte.
-- The Bluetooth connection is now closed cleanly after each session.
+- Serial number and SKU restored from local storage are injected as soon as the entities are created, with no wait for the first BLE reading.
+- The `0xFFFF` hardware marker is now handled when decoding frames, which removes wrong salinity values on devices without a conductivity probe.
 
 ### 🧰 Maintenance
-- New `HydraoEntity` base class, icons moved to `icons.json`, `PARALLEL_UPDATES` declared, named constants, full typing (`mypy --strict`).
-- The `bleak` / `bleak-retry-connector` requirements are no longer declared in the manifest (provided by Home Assistant's Bluetooth integration).
-- The manifest declares the `platinum` quality scale (`quality_scale.yaml`), with tests keeping it consistent.
-- Test suite of **over 500 tests**: config/options flow, coordinator, entities, diagnostics, translations, totals storage, documentation.
-- CI: *Tests*, *Typing* (mypy) and *Release* workflows, ruff configuration (`ruff.toml`) and `.coveragerc`.
+- Centralised raw BLE frame extraction (`extract_raw_payload`), removed the redundant *Model Number (SKU)* and *Serial Number* sensors and dead code, and strengthened the unit tests.
 
-### 📚 Documentation
-- `README.md` / `README.fr.md`: badges, minimum Home Assistant version, new *How Data Is Updated*, *Use Cases*, *Automation Examples*, *Known Limitations* and *Removal* sections, new sensors and temperature troubleshooting.
+### 📋 Upgrade notes
+- After updating from 1.0.3, the former *Model Number (SKU)* and *Serial Number* sensors appear as unavailable: open the entity > gear icon > **Delete** (1.1.1 cleans them up automatically).
+- Blue Connect Silver: a Conductivity entity that was already active stays visible and shows *Unknown*; disable or hide it under **Settings** > **Devices & Services** > **Entities** (1.1.1 does it automatically).
 
-💧💧💧💧💧💧💧💧💧💧
+🐬🐬🐬🐬🐬🐬🐬🐬🐬🐬
+
+## 1.0.3
+
+🐬🐬🐬🐬🐬🐬🐬🐬🐬🐬
+
+### ✨ New features
+- Automatic **Blue Connect Silver** detection, based on the BLE name prefix `BC3-QX25001952`.
+
+🐬🐬🐬🐬🐬🐬🐬🐬🐬🐬
+
+## 1.0.2
+
+🐬🐬🐬🐬🐬🐬🐬🐬🐬🐬
+
+### 🐛 Bug fixes
+- Hotfix: the version number in `manifest.json` had been overlooked in 1.0.1; HACS and Home Assistant now display the right version. No other code change.
+
+🐬🐬🐬🐬🐬🐬🐬🐬🐬🐬
+
+## 1.0.1
+
+🐬🐬🐬🐬🐬🐬🐬🐬🐬🐬
+
+### 🧰 Maintenance
+- Under-the-hood release, no visible feature.
+- Architecture refactoring: pure logic extracted from the coordinator into dedicated modules (`protocol.py`, `model.py`, `validation.py`).
+- Added a pytest suite with no Home Assistant dependency: water chemistry (LSI, equilibrium pH), BLE frame decoding (18 and 19 bytes) and config flow validation.
+- CI: a GitHub Actions workflow (`tests.yaml`) runs the tests on every change.
+- Removed dead code (unreachable conditions) in the calibration validation.
+
+🐬🐬🐬🐬🐬🐬🐬🐬🐬🐬
 
 ## 1.0.0
 
-💧💧💧💧💧💧💧💧💧💧
+🐬🐬🐬🐬🐬🐬🐬🐬🐬🐬
 
 ### ✨ New features
 - First stable release.
 
-💧💧💧💧💧💧💧💧💧💧
+🐬🐬🐬🐬🐬🐬🐬🐬🐬🐬

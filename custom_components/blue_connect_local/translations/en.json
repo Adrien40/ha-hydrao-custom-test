@@ -1,0 +1,364 @@
+{
+  "config": {
+    "flow_title": "{name}",
+    "step": {
+      "user": {
+        "title": "⚙️ Blue Connect Configuration",
+        "description": "If the Blue Connect is not detected automatically, add its Bluetooth MAC address.\n\n**The Access Code is not mandatory.** If you want to enable on-demand analyses, enter the 9 alphanumeric characters (e.g., B93XXXXXX). It is located under the USB port cap of the device, or on the probes' protection cap!\n\n⚠️ Without a code, the device will operate in Passive Mode only: 1 Analysis per hour.",
+        "data": {
+          "mac_address": "🔎 Discovered Device",
+          "manual_mac_address": "✍️ Or enter the MAC address directly (e.g., AA:BB:CC:DD:EE:FF)",
+          "access_code": "🔑 Access Code (Leave empty for Passive Mode: 1 Analysis per hour)"
+        },
+        "sections": {
+          "general": {
+            "name": "⚙️ General",
+            "data": {
+              "chlorine_model": "🧪 Water Treatment",
+              "cya": "💧 Stabilizer Level / CyA (mg/l)"
+            },
+            "data_description": {
+              "chlorine_model": "Sanitizer used in your pool. Bromine disables the CyA entity, which is not relevant for it. Kept for future use: no calculated value depends on it yet.",
+              "cya": "Cyanuric acid (stabilizer) level in mg/l; use 0 if you don't use a stabilizer. Kept for future use: no calculated value depends on it yet."
+            }
+          },
+          "synchronization": {
+            "name": "⏱️ Synchronization",
+            "data": {
+              "scan_interval": "🔄 Analysis Interval (minutes)",
+              "reference_time": "🕒 Reference Time (Scheduling)",
+              "passive_measures": "📡 Blue Connect Internal Analysis (Passive)",
+              "ignore_echoes": "🚫 Ignore Analysis Echoes (Passive)"
+            },
+            "data_description": {
+              "reference_time": "Anchor time used to align scheduled analyses on regular slots (e.g. 08:00, 10:00, 12:00... for a 2-hour interval).",
+              "scan_interval": "Time between two scheduled analyses, from 5 to 1440 minutes. Active Mode only (requires the access code).",
+              "passive_measures": "Use the readings the probe broadcasts on its own, about one per hour. Works without an access code.",
+              "ignore_echoes": "Ignore the passive frames the probe flags as echoes of an analysis, so they don't overwrite the latest measurement."
+            }
+          },
+          "probes_calibration": {
+            "name": "🧪 Probes Calibration",
+            "data": {
+              "ph_calib_7": "🟢 pH 7 Measured Value (e.g., 7.10)",
+              "ph_ref_7": "🎯 pH 7 Target Solution (e.g., 7.02)",
+              "ph_calib_4": "🔴 pH 4 Measured Value (e.g., 4.10)",
+              "ph_ref_4": "🎯 pH 4 Target Solution (e.g., 4.00)",
+              "orp_calib": "📏 ORP (Redox) Measured Value (e.g., 650)",
+              "orp_ref": "🎯 ORP (Redox) Target Solution (e.g., 650)",
+              "temp_offset": "🌡️ Temperature Offset (°C) (+/-)"
+            },
+            "data_description": {
+              "ph_calib_7": "The raw pH value your probe actually measured while dipped in this calibration solution (not the solution's nominal value).",
+              "ph_calib_4": "The raw pH value your probe actually measured while dipped in this calibration solution (not the solution's nominal value).",
+              "ph_ref_7": "The pH of this calibration solution at its current temperature: it varies with temperature, see the table on the bottle.",
+              "ph_ref_4": "The pH of this calibration solution at its current temperature: it varies with temperature, see the table on the bottle.",
+              "orp_calib": "The raw ORP value (mV) your probe actually displayed while dipped in the reference solution.",
+              "orp_ref": "The ORP value (mV) of the reference solution at its current temperature: it varies with temperature, see the bottle. The correction applied is this value minus the measured one.",
+              "temp_offset": "Correction in °C added to the temperature measured by the probe. Can be positive or negative."
+            }
+          }
+        },
+        "data_description": {
+          "access_code": "Found on a sticker under the USB port cap, or on the probes' protection cap. Required for on-demand analyses; leave empty for passive-only listening.",
+          "mac_address": "Pick a Blue Connect detected nearby by Home Assistant's Bluetooth. If yours is not listed, use the field below.",
+          "manual_mac_address": "Only needed if your device is not listed above. Format AA:BB:CC:DD:EE:FF, as shown in Home Assistant's Bluetooth settings."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate Blue Connect",
+        "description": "The access code for {name} was rejected. Enter the new 9-character access code.",
+        "data": {
+          "access_code": "Access Code"
+        },
+        "data_description": {
+          "access_code": "Found on a sticker under the USB port cap, or on the probes' protection cap. Required for on-demand analyses; leave empty for passive-only listening."
+        }
+      },
+      "reconfigure": {
+        "title": "Update Blue Connect device",
+        "description": "Point this entry at a different physical Blue Connect (e.g. after replacing the device), or correct the access code. Your options, automations, and entity history are kept.",
+        "data": {
+          "mac_address": "✍️ Bluetooth MAC address",
+          "access_code": "🔑 Access Code"
+        },
+        "data_description": {
+          "mac_address": "Bluetooth MAC address of the Blue Connect this entry should use (AA:BB:CC:DD:EE:FF). Change it only after replacing the device.",
+          "access_code": "Found on a sticker under the USB port cap, or on the probes' protection cap. Required for on-demand analyses; leave empty for passive-only listening."
+        }
+      }
+    },
+    "error": {
+      "already_configured": "⚠️ This device is already configured",
+      "unknown": "❓ Unknown error",
+      "invalid_mac": "❌ The MAC address is invalid. It must be in the format AA:BB:CC:DD:EE:FF.",
+      "no_mac_provided": "❌ No device selected and no MAC address entered.",
+      "mac_conflict": "❌ The selected device and the manually entered address are different. Fill in only one.",
+      "ph_calibration_equal": "❌ pH calibration values must be different",
+      "ph_slope_mismatch": "❌ Logical error: The calibration slope is inconsistent",
+      "ph_ref_out_of_range": "❌ pH 4: 2.5-5.5, pH 7: 6.5-7.5",
+      "ph_threshold_error": "❌ Minimum pH must be less than maximum pH",
+      "orp_threshold_error": "❌ Minimum ORP (Redox) must be less than maximum ORP",
+      "temp_threshold_error": "❌ Minimum temperature must be less than maximum temperature",
+      "invalid_access_code": "❌ Invalid Access Code (9 alphanumeric characters)."
+    },
+    "abort": {
+      "already_configured": "⚠️ This device is already configured.",
+      "reauth_successful": "Re-authentication was successful"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "🛠️ Blue Connect Options",
+        "description": "Adjust Calibration, behavior, and your personal Alert thresholds.",
+        "data": {},
+        "sections": {
+          "general": {
+            "name": "⚙️ General",
+            "data": {
+              "access_code": "🔑 Access Code (Leave empty for Passive Mode: 1 Analysis per hour)",
+              "chlorine_model": "🧪 Water Treatment",
+              "cya": "💧 Stabilizer Level / CyA (mg/l)"
+            },
+            "data_description": {
+              "access_code": "Found on a sticker under the USB port cap, or on the probes' protection cap. Required for on-demand analyses; leave empty for passive-only listening.",
+              "chlorine_model": "Sanitizer used in your pool. Bromine disables the CyA entity, which is not relevant for it. Kept for future use: no calculated value depends on it yet.",
+              "cya": "Cyanuric acid (stabilizer) level in mg/l; use 0 if you don't use a stabilizer. Kept for future use: no calculated value depends on it yet."
+            }
+          },
+          "synchronization": {
+            "name": "⏱️ Synchronization",
+            "data": {
+              "scan_interval": "🔄 Analysis Interval (minutes)",
+              "reference_time": "🕒 Reference Time (Scheduling)",
+              "passive_measures": "📡 Blue Connect Internal Analysis (Passive)",
+              "ignore_echoes": "🚫 Ignore Analysis Echoes (Passive)"
+            },
+            "data_description": {
+              "reference_time": "Anchor time used to align scheduled analyses on regular slots (e.g. 08:00, 10:00, 12:00... for a 2-hour interval).",
+              "scan_interval": "Time between two scheduled analyses, from 5 to 1440 minutes. Active Mode only (requires the access code).",
+              "passive_measures": "Use the readings the probe broadcasts on its own, about one per hour. Works without an access code.",
+              "ignore_echoes": "Ignore the passive frames the probe flags as echoes of an analysis, so they don't overwrite the latest measurement."
+            }
+          },
+          "probes_calibration": {
+            "name": "🧪 Probes Calibration",
+            "data": {
+              "ph_calib_7": "🟢 pH 7 Measured Value (e.g., 7.10)",
+              "ph_ref_7": "🎯 pH 7 Target Solution (e.g., 7.02)",
+              "ph_calib_4": "🔴 pH 4 Measured Value (e.g., 4.10)",
+              "ph_ref_4": "🎯 pH 4 Target Solution (e.g., 4.00)",
+              "orp_calib": "📏 ORP (Redox) Measured Value (e.g., 650)",
+              "orp_ref": "🎯 ORP (Redox) Target Solution (e.g., 650)",
+              "temp_offset": "🌡️ Temperature Offset (°C) (+/-)"
+            },
+            "data_description": {
+              "ph_calib_7": "The raw pH value your probe actually measured while dipped in this calibration solution (not the solution's nominal value).",
+              "ph_calib_4": "The raw pH value your probe actually measured while dipped in this calibration solution (not the solution's nominal value).",
+              "ph_ref_7": "The pH of this calibration solution at its current temperature: it varies with temperature, see the table on the bottle.",
+              "ph_ref_4": "The pH of this calibration solution at its current temperature: it varies with temperature, see the table on the bottle.",
+              "orp_calib": "The raw ORP value (mV) your probe actually displayed while dipped in the reference solution.",
+              "orp_ref": "The ORP value (mV) of the reference solution at its current temperature: it varies with temperature, see the bottle. The correction applied is this value minus the measured one.",
+              "temp_offset": "Correction in °C added to the temperature measured by the probe. Can be positive or negative."
+            }
+          },
+          "alert_thresholds": {
+            "name": "📊 Alert Thresholds",
+            "data": {
+              "ph_min": "📉 Threshold: Minimum pH (e.g., 6.90)",
+              "ph_max": "📈 Threshold: Maximum pH (e.g., 7.50)",
+              "orp_min": "📉 Threshold: Minimum ORP (Redox) (mV)",
+              "orp_max": "📈 Threshold: Maximum ORP (Redox) (mV)",
+              "temp_min": "❄️ Threshold: Minimum Temperature (°C)",
+              "temp_max": "🌡️ Threshold: Maximum Temperature (°C)"
+            }
+          }
+        }
+      }
+    },
+    "error": {
+      "unknown": "❓ Unknown error",
+      "ph_threshold_error": "❌ Minimum pH must be less than maximum pH",
+      "orp_threshold_error": "❌ Minimum ORP (Redox) must be less than maximum ORP",
+      "temp_threshold_error": "❌ Minimum temperature must be less than maximum temperature",
+      "invalid_access_code": "❌ Invalid Access Code (9 alphanumeric characters).",
+      "ph_calibration_equal": "❌ pH calibration values must be different",
+      "ph_slope_mismatch": "❌ Logical error: The calibration slope is inconsistent",
+      "ph_ref_out_of_range": "❌ pH 4: 2.5-5.5, pH 7: 6.5-7.5"
+    }
+  },
+  "selector": {
+    "chlorine_model": {
+      "options": {
+        "chlorine": "🧂 Chlorine / Salt",
+        "bromine": "🟤 Bromine"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "ph_status": {
+        "name": "pH Status"
+      },
+      "orp_status": {
+        "name": "ORP (Redox) Status"
+      },
+      "temperature_status": {
+        "name": "Temperature Status"
+      }
+    },
+    "button": {
+      "force_analysis": {
+        "name": "New Analysis (~60s)"
+      }
+    },
+    "number": {
+      "scan_interval": {
+        "name": "Analysis Interval"
+      },
+      "tac": {
+        "name": "TAC (Alkalinity)"
+      },
+      "th": {
+        "name": "TH (Hardness)"
+      },
+      "tds": {
+        "name": "TDS (Total Dissolved Solids)"
+      },
+      "cya": {
+        "name": "CyA (Stabilizer)"
+      }
+    },
+    "sensor": {
+      "bluetooth_status": {
+        "name": "Bluetooth Status",
+        "state": {
+          "waiting": "💤 Disconnected",
+          "connecting": "⏳ Connecting to Blue Connect...",
+          "authenticating": "🔐 Authenticating...",
+          "requesting": "🗣️ Requesting Analysis...",
+          "reading": "📡 Listening for Frame...",
+          "success": "✅ Analysis Complete (Disconnected)",
+          "error": "❌ Connection error",
+          "error_retry": "⏳ Error (Retrying in 60s)",
+          "write_failed": "⚠️ Write failed",
+          "auth_failed": "🔒 Invalid access code",
+          "paused": "⏸️ Analysis paused",
+          "out_of_range": "📵 Signal Lost",
+          "passive_mode": "Passive Mode"
+        }
+      },
+      "next_analysis": {
+        "name": "Next Analysis"
+      },
+      "temperature": {
+        "name": "Temperature"
+      },
+      "ph": {
+        "name": "pH"
+      },
+      "orp": {
+        "name": "ORP (Redox)"
+      },
+      "conductivity": {
+        "name": "Conductivity"
+      },
+      "salinity": {
+        "name": "Salinity"
+      },
+      "battery": {
+        "name": "Battery (Voltage)"
+      },
+      "battery_level": {
+        "name": "Battery"
+      },
+      "battery_adc": {
+        "name": "Battery ADC"
+      },
+      "ph_raw": {
+        "name": "Raw pH"
+      },
+      "orp_raw": {
+        "name": "Raw ORP"
+      },
+      "lsi": {
+        "name": "Langelier Index"
+      },
+      "lsi_status": {
+        "name": "Langelier Index Status",
+        "state": {
+          "corrosive": "🔴 Corrosive Water (Acidic)",
+          "balanced": "🟢 Perfectly Balanced Water",
+          "scaling": "🟠 Scaling Water (Basic)",
+          "unknown": "⚪ Unknown"
+        }
+      },
+      "target_equilibrium_ph": {
+        "name": "Equilibrium pH (Taylor)"
+      },
+      "float_status": {
+        "name": "Float Status",
+        "state": {
+          "vertical": "⬆️ Vertical",
+          "tilted": "↗️ Tilted",
+          "horizontal": "➡️ Horizontal (Issue)",
+          "upside_down": "⬇️ Upside down (Issue)"
+        }
+      },
+      "accelerometer": {
+        "name": "Accelerometer"
+      },
+      "last_received": {
+        "name": "Last Analysis"
+      },
+      "raw_frame": {
+        "name": "Calculated Frame"
+      },
+      "raw_frame_0005": {
+        "name": "Electric Frame"
+      },
+      "cloud_id": {
+        "name": "Cloud ID / SN"
+      },
+      "rssi": {
+        "name": "Bluetooth Signal"
+      },
+      "receive_method": {
+        "name": "Calculated Frame Type",
+        "state": {
+          "passive": "Passive",
+          "active": "Active",
+          "unknown": "Unknown"
+        }
+      }
+    },
+    "switch": {
+      "active_measures": {
+        "name": "Automatic Analysis"
+      },
+      "passive_measures": {
+        "name": "Blue Connect Internal Analysis (Passive)"
+      }
+    },
+    "time": {
+      "reference_time": {
+        "name": "Reference Time"
+      }
+    }
+  },
+  "issues": {
+    "device_unreachable": {
+      "title": "Blue Connect unreachable",
+      "description": "The Blue Connect probe ({name}) has not responded for {days} day(s). Check that it is powered, in range, and that a Bluetooth adapter or ESPHome proxy covers the pool area."
+    }
+  },
+  "exceptions": {
+    "out_of_range_no_history": {
+      "message": "Blue Connect {mac} is out of Bluetooth range and no previous data is available."
+    },
+    "unreachable_no_history": {
+      "message": "Blue Connect is unreachable and no previous data is available: {error}"
+    }
+  }
+}

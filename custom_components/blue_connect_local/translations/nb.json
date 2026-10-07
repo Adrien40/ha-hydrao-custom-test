@@ -1,0 +1,364 @@
+{
+  "config": {
+    "flow_title": "{name}",
+    "step": {
+      "user": {
+        "title": "⚙️ Blue Connect-konfigurasjon",
+        "description": "Hvis Blue Connect ikke oppdages automatisk, legg til Bluetooth MAC-adressen.\n\n**Tilgangskoden er ikke obligatorisk.** Hvis du vil aktivere analyser på forespørsel, skriv inn de 9 alfanumeriske tegnene (f.eks. B93XXXXXX). Den finnes under USB-portdekselet på enheten, eller på beskyttelsesdekselet til sondene!\n\n⚠️ Uten kode fungerer enheten kun i passiv modus: 1 analyse i timen.",
+        "data": {
+          "mac_address": "🔎 Oppdaget enhet",
+          "manual_mac_address": "✍️ Eller angi MAC-adressen direkte (f.eks. AA:BB:CC:DD:EE:FF)",
+          "access_code": "🔑 Tilgangskode (la stå tom for passiv modus: 1 analyse i timen)"
+        },
+        "sections": {
+          "general": {
+            "name": "⚙️ Generelt",
+            "data": {
+              "chlorine_model": "🧪 Vannbehandling",
+              "cya": "💧 Stabilisatornivå / CyA (mg/l)"
+            },
+            "data_description": {
+              "chlorine_model": "Desinfeksjonsmiddel brukt i bassenget ditt. Brom deaktiverer CyA-entiteten, som ikke er relevant for det. Lagret for fremtidig bruk: ingen beregnet verdi avhenger av den ennå.",
+              "cya": "Nivå av cyanursyre (stabilisator) i mg/l; bruk 0 hvis du ikke bruker stabilisator. Lagret for fremtidig bruk: ingen beregnet verdi avhenger av den ennå."
+            }
+          },
+          "synchronization": {
+            "name": "⏱️ Synkronisering",
+            "data": {
+              "scan_interval": "🔄 Analyseintervall (minutter)",
+              "reference_time": "🕒 Referansetid (planlegging)",
+              "passive_measures": "📡 Blue Connect interne analyser (passiv)",
+              "ignore_echoes": "🚫 Ignorer analyseekko (passiv)"
+            },
+            "data_description": {
+              "reference_time": "Ankertid brukt til å justere planlagte analyser til faste intervaller (f.eks. 08:00, 10:00, 12:00... for et 2-timers intervall).",
+              "scan_interval": "Tid mellom to planlagte analyser, fra 5 til 1440 minutter. Bare i aktiv modus (krever tilgangskoden).",
+              "passive_measures": "Bruker målingene proben sender ut av seg selv, omtrent én i timen. Fungerer uten tilgangskode.",
+              "ignore_echoes": "Ignorerer passive rammer som proben merker som ekko av en analyse, slik at de ikke overskriver siste måling."
+            }
+          },
+          "probes_calibration": {
+            "name": "🧪 Kalibrering av sonder",
+            "data": {
+              "ph_calib_7": "🟢 Målt verdi pH 7 (f.eks. 7.10)",
+              "ph_ref_7": "🎯 Referanseløsning pH 7 (f.eks. 7.02)",
+              "ph_calib_4": "🔴 Målt verdi pH 4 (f.eks. 4.10)",
+              "ph_ref_4": "🎯 Referanseløsning pH 4 (f.eks. 4.00)",
+              "orp_calib": "📏 Målt verdi ORP (f.eks. 650)",
+              "orp_ref": "🎯 Referanseløsning ORP (f.eks. 650)",
+              "temp_offset": "🌡️ Temperaturavvik (°C) (+/-)"
+            },
+            "data_description": {
+              "ph_calib_7": "Den rå pH-verdien sonden faktisk målte mens den var nedsenket i denne kalibreringsløsningen (ikke løsningens nominelle verdi).",
+              "ph_calib_4": "Den rå pH-verdien sonden faktisk målte mens den var nedsenket i denne kalibreringsløsningen (ikke løsningens nominelle verdi).",
+              "ph_ref_7": "pH for denne kalibreringsløsningen ved dens nåværende temperatur: den avhenger av temperaturen, se tabellen på flasken.",
+              "ph_ref_4": "pH for denne kalibreringsløsningen ved dens nåværende temperatur: den avhenger av temperaturen, se tabellen på flasken.",
+              "orp_calib": "Den rå ORP-verdien (mV) som proben din faktisk viste i referanseløsningen.",
+              "orp_ref": "ORP-verdien (mV) for referanseløsningen ved dens nåværende temperatur: den avhenger av temperaturen, se flasken. Korreksjonen som brukes er denne verdien minus den målte verdien.",
+              "temp_offset": "Korreksjon i °C som legges til temperaturen proben måler. Kan være positiv eller negativ."
+            }
+          }
+        },
+        "data_description": {
+          "access_code": "Finnes på en klistrelapp under USB-portdekselet, eller på sondenes beskyttelsesdeksel. Kreves for analyser på forespørsel; la stå tom for kun passiv lytting.",
+          "mac_address": "Velg en Blue Connect som er funnet i nærheten av Home Assistants Bluetooth. Hvis din ikke vises, bruk feltet under.",
+          "manual_mac_address": "Bare nødvendig hvis enheten din ikke er oppført ovenfor. Format AA:BB:CC:DD:EE:FF, slik det vises i Home Assistants Bluetooth-innstillinger."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-autentiser Blue Connect",
+        "description": "Tilgangskoden for {name} ble avvist. Skriv inn den nye 9-tegns tilgangskoden.",
+        "data": {
+          "access_code": "Tilgangskode"
+        },
+        "data_description": {
+          "access_code": "Finnes på en klistrelapp under USB-portdekselet, eller på sondenes beskyttelsesdeksel. Kreves for analyser på forespørsel; la stå tom for kun passiv lytting."
+        }
+      },
+      "reconfigure": {
+        "title": "Oppdater Blue Connect-enhet",
+        "description": "Pek denne oppføringen mot en annen fysisk Blue Connect (f.eks. etter bytte av enhet), eller rett opp tilgangskoden. Innstillinger, automatiseringer og enhetshistorikk beholdes.",
+        "data": {
+          "mac_address": "✍️ Bluetooth MAC-adresse",
+          "access_code": "🔑 Tilgangskode"
+        },
+        "data_description": {
+          "mac_address": "Bluetooth MAC-adressen til Blue Connect som denne oppføringen skal bruke (AA:BB:CC:DD:EE:FF). Endre den bare etter at enheten er byttet.",
+          "access_code": "Finnes på en klistrelapp under USB-portdekselet, eller på sondenes beskyttelsesdeksel. Kreves for analyser på forespørsel; la stå tom for kun passiv lytting."
+        }
+      }
+    },
+    "error": {
+      "already_configured": "⚠️ Denne enheten er allerede konfigurert",
+      "unknown": "❓ Ukjent feil",
+      "invalid_mac": "❌ MAC-adressen er ugyldig. Den må ha formatet AA:BB:CC:DD:EE:FF.",
+      "no_mac_provided": "❌ Ingen enhet valgt, og ingen MAC-adresse angitt.",
+      "mac_conflict": "❌ Den valgte enheten og den manuelt angitte adressen er forskjellige. Fyll ut kun ett av feltene.",
+      "ph_calibration_equal": "❌ pH-kalibreringsverdiene må være forskjellige",
+      "ph_slope_mismatch": "❌ Logisk feil: Kalibreringshellingen er inkonsekvent",
+      "ph_ref_out_of_range": "❌ pH 4: 2.5-5.5, pH 7: 6.5-7.5",
+      "ph_threshold_error": "❌ Minimum pH må være lavere enn maksimum pH",
+      "orp_threshold_error": "❌ Minimum ORP må være lavere enn maksimum ORP",
+      "temp_threshold_error": "❌ Minimumstemperaturen må være lavere enn maksimumstemperaturen",
+      "invalid_access_code": "❌ Ugyldig tilgangskode (9 alfanumeriske tegn)."
+    },
+    "abort": {
+      "already_configured": "⚠️ Denne enheten er allerede konfigurert.",
+      "reauth_successful": "Re-autentisering var vellykket"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "🛠️ Blue Connect-alternativer",
+        "description": "Juster kalibrering, oppførsel og dine personlige varselterskler.",
+        "data": {},
+        "sections": {
+          "general": {
+            "name": "⚙️ Generelt",
+            "data": {
+              "access_code": "🔑 Tilgangskode (la stå tom for passiv modus: 1 analyse i timen)",
+              "chlorine_model": "🧪 Vannbehandling",
+              "cya": "💧 Stabilisatornivå / CyA (mg/l)"
+            },
+            "data_description": {
+              "access_code": "Finnes på en klistrelapp under USB-portdekselet, eller på sondenes beskyttelsesdeksel. Kreves for analyser på forespørsel; la stå tom for kun passiv lytting.",
+              "chlorine_model": "Desinfeksjonsmiddel brukt i bassenget ditt. Brom deaktiverer CyA-entiteten, som ikke er relevant for det. Lagret for fremtidig bruk: ingen beregnet verdi avhenger av den ennå.",
+              "cya": "Nivå av cyanursyre (stabilisator) i mg/l; bruk 0 hvis du ikke bruker stabilisator. Lagret for fremtidig bruk: ingen beregnet verdi avhenger av den ennå."
+            }
+          },
+          "synchronization": {
+            "name": "⏱️ Synkronisering",
+            "data": {
+              "scan_interval": "🔄 Analyseintervall (minutter)",
+              "reference_time": "🕒 Referansetid (planlegging)",
+              "passive_measures": "📡 Blue Connect interne analyser (passiv)",
+              "ignore_echoes": "🚫 Ignorer analyseekko (passiv)"
+            },
+            "data_description": {
+              "reference_time": "Ankertid brukt til å justere planlagte analyser til faste intervaller (f.eks. 08:00, 10:00, 12:00... for et 2-timers intervall).",
+              "scan_interval": "Tid mellom to planlagte analyser, fra 5 til 1440 minutter. Bare i aktiv modus (krever tilgangskoden).",
+              "passive_measures": "Bruker målingene proben sender ut av seg selv, omtrent én i timen. Fungerer uten tilgangskode.",
+              "ignore_echoes": "Ignorerer passive rammer som proben merker som ekko av en analyse, slik at de ikke overskriver siste måling."
+            }
+          },
+          "probes_calibration": {
+            "name": "🧪 Kalibrering av sonder",
+            "data": {
+              "ph_calib_7": "🟢 Målt verdi pH 7 (f.eks. 7.10)",
+              "ph_ref_7": "🎯 Referanseløsning pH 7 (f.eks. 7.02)",
+              "ph_calib_4": "🔴 Målt verdi pH 4 (f.eks. 4.10)",
+              "ph_ref_4": "🎯 Referanseløsning pH 4 (f.eks. 4.00)",
+              "orp_calib": "📏 Målt verdi ORP (f.eks. 650)",
+              "orp_ref": "🎯 Referanseløsning ORP (f.eks. 650)",
+              "temp_offset": "🌡️ Temperaturavvik (°C) (+/-)"
+            },
+            "data_description": {
+              "ph_calib_7": "Den rå pH-verdien sonden faktisk målte mens den var nedsenket i denne kalibreringsløsningen (ikke løsningens nominelle verdi).",
+              "ph_calib_4": "Den rå pH-verdien sonden faktisk målte mens den var nedsenket i denne kalibreringsløsningen (ikke løsningens nominelle verdi).",
+              "ph_ref_7": "pH for denne kalibreringsløsningen ved dens nåværende temperatur: den avhenger av temperaturen, se tabellen på flasken.",
+              "ph_ref_4": "pH for denne kalibreringsløsningen ved dens nåværende temperatur: den avhenger av temperaturen, se tabellen på flasken.",
+              "orp_calib": "Den rå ORP-verdien (mV) som proben din faktisk viste i referanseløsningen.",
+              "orp_ref": "ORP-verdien (mV) for referanseløsningen ved dens nåværende temperatur: den avhenger av temperaturen, se flasken. Korreksjonen som brukes er denne verdien minus den målte verdien.",
+              "temp_offset": "Korreksjon i °C som legges til temperaturen proben måler. Kan være positiv eller negativ."
+            }
+          },
+          "alert_thresholds": {
+            "name": "📊 Varselterskler",
+            "data": {
+              "ph_min": "📉 Terskel: Minimum pH (f.eks. 6.90)",
+              "ph_max": "📈 Terskel: Maksimum pH (f.eks. 7.50)",
+              "orp_min": "📉 Terskel: Minimum ORP (mV)",
+              "orp_max": "📈 Terskel: Maksimum ORP (mV)",
+              "temp_min": "❄️ Terskel: Minimumstemperatur (°C)",
+              "temp_max": "🌡️ Terskel: Maksimumstemperatur (°C)"
+            }
+          }
+        }
+      }
+    },
+    "error": {
+      "unknown": "❓ Ukjent feil",
+      "ph_threshold_error": "❌ Minimum pH må være lavere enn maksimum pH",
+      "orp_threshold_error": "❌ Minimum ORP må være lavere enn maksimum ORP",
+      "temp_threshold_error": "❌ Minimumstemperaturen må være lavere enn maksimumstemperaturen",
+      "invalid_access_code": "❌ Ugyldig tilgangskode (9 alfanumeriske tegn).",
+      "ph_calibration_equal": "❌ pH-kalibreringsverdiene må være forskjellige",
+      "ph_slope_mismatch": "❌ Logisk feil: Kalibreringshellingen er inkonsekvent",
+      "ph_ref_out_of_range": "❌ pH 4: 2.5-5.5, pH 7: 6.5-7.5"
+    }
+  },
+  "selector": {
+    "chlorine_model": {
+      "options": {
+        "chlorine": "🧂 Klor / Salt",
+        "bromine": "🟤 Brom"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "ph_status": {
+        "name": "pH-status"
+      },
+      "orp_status": {
+        "name": "ORP-status (Redox)"
+      },
+      "temperature_status": {
+        "name": "Temperaturstatus"
+      }
+    },
+    "button": {
+      "force_analysis": {
+        "name": "Ny analyse (~60s)"
+      }
+    },
+    "number": {
+      "scan_interval": {
+        "name": "Analyseintervall"
+      },
+      "tac": {
+        "name": "TAC (Alkalitet)"
+      },
+      "th": {
+        "name": "TH (Hardhet)"
+      },
+      "tds": {
+        "name": "TDS (Løste stoffer)"
+      },
+      "cya": {
+        "name": "CyA (Stabilisator)"
+      }
+    },
+    "sensor": {
+      "bluetooth_status": {
+        "name": "Bluetooth-status",
+        "state": {
+          "waiting": "💤 Frakoblet",
+          "connecting": "⏳ Kobler til Blue Connect...",
+          "authenticating": "🔐 Autentiserer...",
+          "requesting": "🗣️ Forespør analyse...",
+          "reading": "📡 Venter på ramme...",
+          "success": "✅ Analyse fullført (frakoblet)",
+          "error": "❌ Tilkoblingsfeil",
+          "error_retry": "⏳ Feil (prøver på nytt om 60s)",
+          "write_failed": "⚠️ Skriving mislyktes",
+          "auth_failed": "🔒 Ugyldig tilgangskode",
+          "paused": "⏸️ Analyser satt på pause",
+          "out_of_range": "📵 Signal tapt",
+          "passive_mode": "Passiv modus"
+        }
+      },
+      "next_analysis": {
+        "name": "Neste analyse"
+      },
+      "temperature": {
+        "name": "Temperatur"
+      },
+      "ph": {
+        "name": "pH"
+      },
+      "orp": {
+        "name": "ORP (Redox)"
+      },
+      "conductivity": {
+        "name": "Konduktivitet"
+      },
+      "salinity": {
+        "name": "Salinitet"
+      },
+      "battery": {
+        "name": "Batteri (spenning)"
+      },
+      "battery_level": {
+        "name": "Batteri"
+      },
+      "battery_adc": {
+        "name": "Batteri ADC"
+      },
+      "ph_raw": {
+        "name": "Rå pH"
+      },
+      "orp_raw": {
+        "name": "Rå ORP"
+      },
+      "lsi": {
+        "name": "Langelier-indeks"
+      },
+      "lsi_status": {
+        "name": "Langelier-indeksstatus",
+        "state": {
+          "corrosive": "🔴 Korroderende vann (surt)",
+          "balanced": "🟢 Perfekt balansert vann",
+          "scaling": "🟠 Kalkdannende vann (basisk)",
+          "unknown": "⚪ Ukjent"
+        }
+      },
+      "target_equilibrium_ph": {
+        "name": "Likevekts-pH (Taylor)"
+      },
+      "float_status": {
+        "name": "Flytestatus",
+        "state": {
+          "vertical": "⬆️ Vertikal",
+          "tilted": "↗️ Skrå",
+          "horizontal": "➡️ Horisontal (problem)",
+          "upside_down": "⬇️ Opp-ned (problem)"
+        }
+      },
+      "accelerometer": {
+        "name": "Akselerometer"
+      },
+      "last_received": {
+        "name": "Siste analyse"
+      },
+      "raw_frame": {
+        "name": "Beregnet ramme"
+      },
+      "raw_frame_0005": {
+        "name": "Elektrisk ramme"
+      },
+      "cloud_id": {
+        "name": "Cloud-ID / SN"
+      },
+      "rssi": {
+        "name": "Bluetooth-signal"
+      },
+      "receive_method": {
+        "name": "Type beregnet ramme",
+        "state": {
+          "passive": "Passiv",
+          "active": "Aktiv",
+          "unknown": "Ukjent"
+        }
+      }
+    },
+    "switch": {
+      "active_measures": {
+        "name": "Automatiske analyser"
+      },
+      "passive_measures": {
+        "name": "Blue Connect interne analyser (passiv)"
+      }
+    },
+    "time": {
+      "reference_time": {
+        "name": "Referansetid"
+      }
+    }
+  },
+  "issues": {
+    "device_unreachable": {
+      "title": "Blue Connect utilgjengelig",
+      "description": "Blue Connect-sonden ({name}) har ikke svart på {days} dag(er). Kontroller strøm, rekkevidde, og at en Bluetooth-adapter eller ESPHome-proxy dekker bassengområdet."
+    }
+  },
+  "exceptions": {
+    "out_of_range_no_history": {
+      "message": "Blue Connect {mac} er utenfor Bluetooth-rekkevidde, og ingen tidligere data er tilgjengelige."
+    },
+    "unreachable_no_history": {
+      "message": "Blue Connect er utilgjengelig, og ingen tidligere data er tilgjengelige: {error}"
+    }
+  }
+}

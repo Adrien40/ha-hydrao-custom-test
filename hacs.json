@@ -1,5 +1,5 @@
 {
-  "name": "Hydrao Custom",
+  "name": "Blue Connect Local",
   "render_readme": true,
-  "homeassistant": "2026.5.0"
+  "homeassistant": "2026.3.0"
 }

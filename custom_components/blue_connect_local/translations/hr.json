@@ -1,0 +1,364 @@
+{
+  "config": {
+    "flow_title": "{name}",
+    "step": {
+      "user": {
+        "title": "⚙️ Konfiguracija Blue Connect uređaja",
+        "description": "Ako Blue Connect nije automatski otkriven, dodajte njegovu Bluetooth MAC adresu.\n\n**Pristupni kod nije obavezan.** Ako želite omogućiti analize na zahtjev, unesite 9 alfanumeričkih znakova (npr. B93XXXXXX). Nalazi se ispod poklopca USB priključka uređaja ili na zaštitnom poklopcu sondi!\n\n⚠️ Bez koda, uređaj će raditi samo u pasivnom načinu rada: 1 analiza na sat.",
+        "data": {
+          "mac_address": "🔎 Otkriveni uređaj",
+          "manual_mac_address": "✍️ Ili izravno unesite MAC adresu (npr. AA:BB:CC:DD:EE:FF)",
+          "access_code": "🔑 Pristupni kod (ostavite prazno za pasivni način rada: 1 analiza na sat)"
+        },
+        "sections": {
+          "general": {
+            "name": "⚙️ Općenito",
+            "data": {
+              "chlorine_model": "🧪 Obrada vode",
+              "cya": "💧 Razina stabilizatora / CyA (mg/l)"
+            },
+            "data_description": {
+              "chlorine_model": "Dezinficijens koji koristite u bazenu. Brom isključuje entitet CyA, koji za njega nije relevantan. Sprema se za buduću upotrebu: za sada nijedna izračunata vrijednost ne ovisi o tome.",
+              "cya": "Razina cijanurne kiseline (stabilizatora) u mg/l; unesite 0 ako ne koristite stabilizator. Sprema se za buduću upotrebu: za sada nijedna izračunata vrijednost ne ovisi o njoj."
+            }
+          },
+          "synchronization": {
+            "name": "⏱️ Sinkronizacija",
+            "data": {
+              "scan_interval": "🔄 Interval analize (minute)",
+              "reference_time": "🕒 Referentno vrijeme (raspored)",
+              "passive_measures": "📡 Interne analize Blue Connect uređaja (pasivne)",
+              "ignore_echoes": "🚫 Zanemari odjeke analiza (pasivne)"
+            },
+            "data_description": {
+              "reference_time": "Referentno vrijeme za usklađivanje planiranih analiza s redovitim intervalima (npr. 08:00, 10:00, 12:00... za 2-satni interval).",
+              "scan_interval": "Vrijeme između dvije planirane analize, od 5 do 1440 minuta. Samo u aktivnom načinu (potreban je pristupni kod).",
+              "passive_measures": "Koristi očitanja koja sonda sama šalje, otprilike jedno na sat. Radi bez pristupnog koda.",
+              "ignore_echoes": "Zanemaruje pasivne okvire koje sonda označi kao jeku analize kako ne bi prepisali posljednje mjerenje."
+            }
+          },
+          "probes_calibration": {
+            "name": "🧪 Kalibracija sondi",
+            "data": {
+              "ph_calib_7": "🟢 Izmjerena vrijednost pH 7 (npr. 7.10)",
+              "ph_ref_7": "🎯 Ciljna otopina pH 7 (npr. 7.02)",
+              "ph_calib_4": "🔴 Izmjerena vrijednost pH 4 (npr. 4.10)",
+              "ph_ref_4": "🎯 Ciljna otopina pH 4 (npr. 4.00)",
+              "orp_calib": "📏 Izmjerena vrijednost ORP (npr. 650)",
+              "orp_ref": "🎯 Ciljna otopina ORP (npr. 650)",
+              "temp_offset": "🌡️ Odstupanje temperature (°C) (+/-)"
+            },
+            "data_description": {
+              "ph_calib_7": "Sirova vrijednost pH koju je sonda stvarno izmjerila dok je bila uronjena u ovu kalibracijsku otopinu (ne nazivna vrijednost otopine).",
+              "ph_calib_4": "Sirova vrijednost pH koju je sonda stvarno izmjerila dok je bila uronjena u ovu kalibracijsku otopinu (ne nazivna vrijednost otopine).",
+              "ph_ref_7": "pH ove kalibracijske otopine pri njezinoj trenutnoj temperaturi: ovisi o temperaturi, pogledajte tablicu na boci.",
+              "ph_ref_4": "pH ove kalibracijske otopine pri njezinoj trenutnoj temperaturi: ovisi o temperaturi, pogledajte tablicu na boci.",
+              "orp_calib": "Neobrađena ORP vrijednost (mV) koju je vaša sonda stvarno prikazala u referentnoj otopini.",
+              "orp_ref": "ORP vrijednost (mV) referentne otopine pri njezinoj trenutnoj temperaturi: ovisi o temperaturi, pogledajte bocu. Primijenjena korekcija je ta vrijednost minus izmjerena vrijednost.",
+              "temp_offset": "Korekcija u °C koja se dodaje temperaturi koju je izmjerila sonda. Može biti pozitivna ili negativna."
+            }
+          }
+        },
+        "data_description": {
+          "access_code": "Nalazi se na naljepnici ispod poklopca USB priključka ili na zaštitnom poklopcu sondi. Potrebno za analize na zahtjev; ostavite prazno za samo pasivno slušanje.",
+          "mac_address": "Odaberite Blue Connect koji je Bluetooth Home Assistanta otkrio u blizini. Ako vašeg nema, upotrijebite polje ispod.",
+          "manual_mac_address": "Potrebno samo ako vaš uređaj nije naveden iznad. Format AA:BB:CC:DD:EE:FF, kako je prikazano u Bluetooth postavkama Home Assistanta."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Ponovna autentifikacija Blue Connect",
+        "description": "Pristupni kod za {name} je odbijen. Unesite novi pristupni kod od 9 znakova.",
+        "data": {
+          "access_code": "Pristupni Kod"
+        },
+        "data_description": {
+          "access_code": "Nalazi se na naljepnici ispod poklopca USB priključka ili na zaštitnom poklopcu sondi. Potrebno za analize na zahtjev; ostavite prazno za samo pasivno slušanje."
+        }
+      },
+      "reconfigure": {
+        "title": "Ažuriraj Blue Connect uređaj",
+        "description": "Povežite ovaj unos s drugim fizičkim Blue Connectom (npr. nakon zamjene uređaja), ili ispravite pristupni kod. Vaše opcije, automatizacije i povijest entiteta ostaju sačuvani.",
+        "data": {
+          "mac_address": "✍️ Bluetooth MAC adresa",
+          "access_code": "🔑 Pristupni Kod"
+        },
+        "data_description": {
+          "mac_address": "Bluetooth MAC adresa uređaja Blue Connect koji ovaj unos treba koristiti (AA:BB:CC:DD:EE:FF). Mijenjajte je samo nakon zamjene uređaja.",
+          "access_code": "Nalazi se na naljepnici ispod poklopca USB priključka ili na zaštitnom poklopcu sondi. Potrebno za analize na zahtjev; ostavite prazno za samo pasivno slušanje."
+        }
+      }
+    },
+    "error": {
+      "already_configured": "⚠️ Ovaj uređaj je već konfiguriran",
+      "unknown": "❓ Nepoznata pogreška",
+      "invalid_mac": "❌ MAC adresa nije valjana. Mora biti u formatu AA:BB:CC:DD:EE:FF.",
+      "no_mac_provided": "❌ Nije odabran nijedan uređaj i nije unesena MAC adresa.",
+      "mac_conflict": "❌ Odabrani uređaj i ručno unesena adresa se razlikuju. Ispunite samo jedno polje.",
+      "ph_calibration_equal": "❌ Vrijednosti kalibracije pH moraju biti različite",
+      "ph_slope_mismatch": "❌ Logička pogreška: Nagib kalibracije je nedosljedan",
+      "ph_ref_out_of_range": "❌ pH 4: 2.5-5.5, pH 7: 6.5-7.5",
+      "ph_threshold_error": "❌ Minimalni pH mora biti manji od maksimalnog pH",
+      "orp_threshold_error": "❌ Minimalni ORP mora biti manji od maksimalnog ORP",
+      "temp_threshold_error": "❌ Minimalna temperatura mora biti niža od maksimalne temperature",
+      "invalid_access_code": "❌ Nevažeći pristupni kod (9 alfanumeričkih znakova)."
+    },
+    "abort": {
+      "already_configured": "⚠️ Ovaj uređaj je već konfiguriran.",
+      "reauth_successful": "Ponovna autentifikacija uspjela"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "🛠️ Opcije Blue Connect uređaja",
+        "description": "Prilagodite kalibraciju, ponašanje i vaše osobne pragove upozorenja.",
+        "data": {},
+        "sections": {
+          "general": {
+            "name": "⚙️ Općenito",
+            "data": {
+              "access_code": "🔑 Pristupni kod (ostavite prazno za pasivni način rada: 1 analiza na sat)",
+              "chlorine_model": "🧪 Obrada vode",
+              "cya": "💧 Razina stabilizatora / CyA (mg/l)"
+            },
+            "data_description": {
+              "access_code": "Nalazi se na naljepnici ispod poklopca USB priključka ili na zaštitnom poklopcu sondi. Potrebno za analize na zahtjev; ostavite prazno za samo pasivno slušanje.",
+              "chlorine_model": "Dezinficijens koji koristite u bazenu. Brom isključuje entitet CyA, koji za njega nije relevantan. Sprema se za buduću upotrebu: za sada nijedna izračunata vrijednost ne ovisi o tome.",
+              "cya": "Razina cijanurne kiseline (stabilizatora) u mg/l; unesite 0 ako ne koristite stabilizator. Sprema se za buduću upotrebu: za sada nijedna izračunata vrijednost ne ovisi o njoj."
+            }
+          },
+          "synchronization": {
+            "name": "⏱️ Sinkronizacija",
+            "data": {
+              "scan_interval": "🔄 Interval analize (minute)",
+              "reference_time": "🕒 Referentno vrijeme (raspored)",
+              "passive_measures": "📡 Interne analize Blue Connect uređaja (pasivne)",
+              "ignore_echoes": "🚫 Zanemari odjeke analiza (pasivne)"
+            },
+            "data_description": {
+              "reference_time": "Referentno vrijeme za usklađivanje planiranih analiza s redovitim intervalima (npr. 08:00, 10:00, 12:00... za 2-satni interval).",
+              "scan_interval": "Vrijeme između dvije planirane analize, od 5 do 1440 minuta. Samo u aktivnom načinu (potreban je pristupni kod).",
+              "passive_measures": "Koristi očitanja koja sonda sama šalje, otprilike jedno na sat. Radi bez pristupnog koda.",
+              "ignore_echoes": "Zanemaruje pasivne okvire koje sonda označi kao jeku analize kako ne bi prepisali posljednje mjerenje."
+            }
+          },
+          "probes_calibration": {
+            "name": "🧪 Kalibracija sondi",
+            "data": {
+              "ph_calib_7": "🟢 Izmjerena vrijednost pH 7 (npr. 7.10)",
+              "ph_ref_7": "🎯 Ciljna otopina pH 7 (npr. 7.02)",
+              "ph_calib_4": "🔴 Izmjerena vrijednost pH 4 (npr. 4.10)",
+              "ph_ref_4": "🎯 Ciljna otopina pH 4 (npr. 4.00)",
+              "orp_calib": "📏 Izmjerena vrijednost ORP (npr. 650)",
+              "orp_ref": "🎯 Ciljna otopina ORP (npr. 650)",
+              "temp_offset": "🌡️ Odstupanje temperature (°C) (+/-)"
+            },
+            "data_description": {
+              "ph_calib_7": "Sirova vrijednost pH koju je sonda stvarno izmjerila dok je bila uronjena u ovu kalibracijsku otopinu (ne nazivna vrijednost otopine).",
+              "ph_calib_4": "Sirova vrijednost pH koju je sonda stvarno izmjerila dok je bila uronjena u ovu kalibracijsku otopinu (ne nazivna vrijednost otopine).",
+              "ph_ref_7": "pH ove kalibracijske otopine pri njezinoj trenutnoj temperaturi: ovisi o temperaturi, pogledajte tablicu na boci.",
+              "ph_ref_4": "pH ove kalibracijske otopine pri njezinoj trenutnoj temperaturi: ovisi o temperaturi, pogledajte tablicu na boci.",
+              "orp_calib": "Neobrađena ORP vrijednost (mV) koju je vaša sonda stvarno prikazala u referentnoj otopini.",
+              "orp_ref": "ORP vrijednost (mV) referentne otopine pri njezinoj trenutnoj temperaturi: ovisi o temperaturi, pogledajte bocu. Primijenjena korekcija je ta vrijednost minus izmjerena vrijednost.",
+              "temp_offset": "Korekcija u °C koja se dodaje temperaturi koju je izmjerila sonda. Može biti pozitivna ili negativna."
+            }
+          },
+          "alert_thresholds": {
+            "name": "📊 Pragovi upozorenja",
+            "data": {
+              "ph_min": "📉 Prag: Minimalni pH (npr. 6.90)",
+              "ph_max": "📈 Prag: Maksimalni pH (npr. 7.50)",
+              "orp_min": "📉 Prag: Minimalni ORP (mV)",
+              "orp_max": "📈 Prag: Maksimalni ORP (mV)",
+              "temp_min": "❄️ Prag: Minimalna temperatura (°C)",
+              "temp_max": "🌡️ Prag: Maksimalna temperatura (°C)"
+            }
+          }
+        }
+      }
+    },
+    "error": {
+      "unknown": "❓ Nepoznata pogreška",
+      "ph_threshold_error": "❌ Minimalni pH mora biti manji od maksimalnog pH",
+      "orp_threshold_error": "❌ Minimalni ORP mora biti manji od maksimalnog ORP",
+      "temp_threshold_error": "❌ Minimalna temperatura mora biti niža od maksimalne temperature",
+      "invalid_access_code": "❌ Nevažeći pristupni kod (9 alfanumeričkih znakova).",
+      "ph_calibration_equal": "❌ Vrijednosti kalibracije pH moraju biti različite",
+      "ph_slope_mismatch": "❌ Logička pogreška: Nagib kalibracije je nedosljedan",
+      "ph_ref_out_of_range": "❌ pH 4: 2.5-5.5, pH 7: 6.5-7.5"
+    }
+  },
+  "selector": {
+    "chlorine_model": {
+      "options": {
+        "chlorine": "🧂 Klor / Sol",
+        "bromine": "🟤 Brom"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "ph_status": {
+        "name": "Status pH"
+      },
+      "orp_status": {
+        "name": "Status ORP (Redox)"
+      },
+      "temperature_status": {
+        "name": "Status temperature"
+      }
+    },
+    "button": {
+      "force_analysis": {
+        "name": "Nova analiza (~60s)"
+      }
+    },
+    "number": {
+      "scan_interval": {
+        "name": "Interval analize"
+      },
+      "tac": {
+        "name": "TAC (Alkalitet)"
+      },
+      "th": {
+        "name": "TH (Tvrdoća)"
+      },
+      "tds": {
+        "name": "TDS (Otopljene krute tvari)"
+      },
+      "cya": {
+        "name": "CyA (Stabilizator)"
+      }
+    },
+    "sensor": {
+      "bluetooth_status": {
+        "name": "Bluetooth status",
+        "state": {
+          "waiting": "💤 Nije povezano",
+          "connecting": "⏳ Povezivanje s Blue Connect uređajem...",
+          "authenticating": "🔐 Autentifikacija...",
+          "requesting": "🗣️ Zahtjev za analizu...",
+          "reading": "📡 Čekanje okvira...",
+          "success": "✅ Analiza dovršena (nije povezano)",
+          "error": "❌ Pogreška veze",
+          "error_retry": "⏳ Pogreška (ponavljanje za 60s)",
+          "write_failed": "⚠️ Pisanje nije uspjelo",
+          "auth_failed": "🔒 Nevažeći pristupni kod",
+          "paused": "⏸️ Analize pauzirane",
+          "out_of_range": "📵 Signal izgubljen",
+          "passive_mode": "Pasivni način rada"
+        }
+      },
+      "next_analysis": {
+        "name": "Sljedeća analiza"
+      },
+      "temperature": {
+        "name": "Temperatura"
+      },
+      "ph": {
+        "name": "pH"
+      },
+      "orp": {
+        "name": "ORP (Redox)"
+      },
+      "conductivity": {
+        "name": "Vodljivost"
+      },
+      "salinity": {
+        "name": "Slanost"
+      },
+      "battery": {
+        "name": "Baterija (napon)"
+      },
+      "battery_level": {
+        "name": "Baterija"
+      },
+      "battery_adc": {
+        "name": "Baterija ADC"
+      },
+      "ph_raw": {
+        "name": "Sirovi pH"
+      },
+      "orp_raw": {
+        "name": "Sirovi ORP"
+      },
+      "lsi": {
+        "name": "Langelierov indeks"
+      },
+      "lsi_status": {
+        "name": "Status Langelierovog indeksa",
+        "state": {
+          "corrosive": "🔴 Korozivna voda (kisela)",
+          "balanced": "🟢 Savršeno uravnotežena voda",
+          "scaling": "🟠 Voda sklona stvaranju kamenca (bazična)",
+          "unknown": "⚪ Nepoznato"
+        }
+      },
+      "target_equilibrium_ph": {
+        "name": "Ravnotežni pH (Taylor)"
+      },
+      "float_status": {
+        "name": "Status plovka",
+        "state": {
+          "vertical": "⬆️ Okomito",
+          "tilted": "↗️ Nagnuto",
+          "horizontal": "➡️ Vodoravno (problem)",
+          "upside_down": "⬇️ Naopako (problem)"
+        }
+      },
+      "accelerometer": {
+        "name": "Akcelerometar"
+      },
+      "last_received": {
+        "name": "Posljednja analiza"
+      },
+      "raw_frame": {
+        "name": "Izračunati okvir"
+      },
+      "raw_frame_0005": {
+        "name": "Električni okvir"
+      },
+      "cloud_id": {
+        "name": "Cloud ID / SN"
+      },
+      "rssi": {
+        "name": "Bluetooth signal"
+      },
+      "receive_method": {
+        "name": "Vrsta izračunatog okvira",
+        "state": {
+          "passive": "Pasivno",
+          "active": "Aktivno",
+          "unknown": "Nepoznato"
+        }
+      }
+    },
+    "switch": {
+      "active_measures": {
+        "name": "Automatske analize"
+      },
+      "passive_measures": {
+        "name": "Interne analize Blue Connect uređaja (pasivne)"
+      }
+    },
+    "time": {
+      "reference_time": {
+        "name": "Referentno vrijeme"
+      }
+    }
+  },
+  "issues": {
+    "device_unreachable": {
+      "title": "Blue Connect nedostupan",
+      "description": "Blue Connect sonda ({name}) nije odgovorila {days} dan(a). Provjerite napajanje, domet i pokriva li Bluetooth adapter ili ESPHome proxy područje bazena."
+    }
+  },
+  "exceptions": {
+    "out_of_range_no_history": {
+      "message": "Blue Connect {mac} je izvan Bluetooth dometa i nema dostupnih prethodnih podataka."
+    },
+    "unreachable_no_history": {
+      "message": "Blue Connect je nedostupan i nema dostupnih prethodnih podataka: {error}"
+    }
+  }
+}
