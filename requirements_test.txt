@@ -1,12 +1,20 @@
 # Dépendances pour lancer la suite de tests : pip install -r requirements_test.txt
 # (Python 3.14 : version fournie avec Home Assistant 2026.3, notre minimum)
-pytest-homeassistant-custom-component
-hypothesis
-ruff
-mypy
+#
+# Versions figées sur le jeu de la dernière CI verte (Home Assistant 2026.9.4) :
+# la CI ne change plus toute seule. Le paquet pytest-homeassistant-custom-component
+# impose une version précise de Home Assistant (0.13.367 -> 2026.9.4), c'est donc
+# lui qui fige Home Assistant.
+# Pour monter de version : changer ces numéros volontairement, lire ce qui casse
+# (Home Assistant 2026.10 type ses schémas en `probatio` : mypy --strict y échoue
+# tant que config_flow.py et binary_sensor.py ne sont pas adaptés).
+pytest-homeassistant-custom-component==0.13.367
+hypothesis==6.168.3
+ruff==0.16.9
+mypy==2.3.1
 # Dépendances de l'intégration `bluetooth` de Home Assistant, non tirées
 # automatiquement par le paquet ci-dessus.
-aiousbwatcher
-pyserial
-serialx
-dbus-fast
+aiousbwatcher==1.1.2
+pyserial==3.5
+serialx==1.10.0
+dbus-fast==5.0.22
